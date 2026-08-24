@@ -1,11 +1,7 @@
-import { CalendarDays, CheckCircle2, Clock3, FileText, MapPin, Stethoscope, Users } from 'lucide-react';
-import PatientShell from '@/components/PatientShell';
-export const metadata = { title:'My Case — CareAtlas' };
-export default function CasesPage(){return <PatientShell title="My medical case" subtitle="A structured summary of the information currently being used to coordinate your care.">
-  <div className="case-overview-banner"><div><span className="status-pill">Hospital matching</span><h2>Total Knee Replacement</h2><p>Orthopedic evaluation for right knee · Case CA-26082401</p></div><div className="case-health"><Clock3 size={18}/><div><small>Last updated</small><strong>24 Aug · 12:10 PM</strong></div></div></div>
-  <div className="patient-grid-two compact-grid">
-    <section className="portal-card"><span className="eyebrow">CASE SUMMARY</span><div className="detail-list"><div><Stethoscope/><span><small>Treatment</small><strong>Total Knee Replacement</strong></span></div><div><MapPin/><span><small>Preferred destinations</small><strong>India · Turkey · Thailand</strong></span></div><div><CalendarDays/><span><small>Preferred travel</small><strong>September 2026</strong></span></div><div><Users/><span><small>Travelling with</small><strong>1 attendant</strong></span></div></div></section>
-    <section className="portal-card"><span className="eyebrow">CASE ACTIVITY</span><div className="activity-list"><div><CheckCircle2/><span><strong>Case submitted</strong><small>24 Aug · 09:42 AM</small></span></div><div><CheckCircle2/><span><strong>Records reviewed</strong><small>24 Aug · 10:25 AM</small></span></div><div className="current"><Clock3/><span><strong>Hospital matching started</strong><small>24 Aug · 12:10 PM</small></span></div></div></section>
-  </div>
-  <section className="portal-card hospital-review-card"><div className="portal-card-heading"><div><span className="eyebrow">HOSPITAL REVIEW</span><h2>Your case is being reviewed by 3 providers.</h2></div></div><div className="reviewing-hospitals"><div><span>🇮🇳</span><strong>Aster Nova Institute</strong><small>Reviewing case</small></div><div><span>🇹🇷</span><strong>Bosporus Medical Centre</strong><small>Reviewing case</small></div><div><span>🇹🇭</span><strong>Siam International Hospital</strong><small>Reviewing case</small></div></div></section>
-</PatientShell>}
+import PatientCasesClient from '@/components/PatientCasesClient';
+
+export const metadata = { title: 'My Cases — CareAtlas' };
+
+export default function CasesPage() {
+  return <PatientCasesClient />;
+}

@@ -1,9 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check, FileText, FileUp, Globe2, ShieldCheck, Trash2, UserRound } from 'lucide-react';
 import { destinations, treatments } from '@/lib/data';
+import { useAuth } from '@/components/AuthProvider';
+import { createPatientCase } from '@/lib/firebase/cases';
+
+const PENDING_CASE_KEY = 'careatlas-pending-case';
 
 const steps = [
   ['About you', UserRound],
@@ -26,15 +31,47 @@ function prettyBytes(bytes) {
 }
 
 export default function TreatmentPlanForm() {
+  const router = useRouter();
+  const { user, patientProfile, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
   const [files, setFiles] = useState([]);
-  const [submittedRef, setSubmittedRef] = useState('');
+  const [submittedCase, setSubmittedCase] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [restoredDraft, setRestoredDraft] = useState(false);
 
-  const treatment = useMemo(() => treatments.find(t => t.slug === form.treatment), [form.treatment]);
+  const treatment = useMemo(() => treatments.find(item => item.slug === form.treatment), [form.treatment]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const pending = JSON.parse(window.sessionStorage.getItem(PENDING_CASE_KEY) || 'null');
+      if (pending?.form) {
+        setForm(prev => ({ ...prev, ...pending.form }));
+        setStep(4);
+        setRestoredDraft(true);
+      }
+    } catch {
+      window.sessionStorage.removeItem(PENDING_CASE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    setForm(prev => ({
+      ...prev,
+      name: prev.name || patientProfile?.displayName || user.displayName || '',
+      email: user.email || prev.email,
+      country: prev.country || patientProfile?.country || '',
+      phone: prev.phone || patientProfile?.phone || '',
+      language: prev.language || patientProfile?.preferredLanguage || 'English'
+    }));
+  }, [user, patientProfile]);
 
   function update(field, value) {
     setForm(prev => ({ ...prev, [field]: value }));
+    setSubmitError('');
   }
 
   function toggleDestination(slug) {
@@ -72,22 +109,60 @@ export default function TreatmentPlanForm() {
     if (canContinue()) setStep(prev => Math.min(4, prev + 1));
   }
 
-  function submit() {
-    const ref = `CA-DEMO-${String(Date.now()).slice(-6)}`;
-    setSubmittedRef(ref);
+  async function submit() {
+    setSubmitError('');
+
+    if (!user) {
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(PENDING_CASE_KEY, JSON.stringify({ form }));
+      }
+      router.push('/register');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const createdCase = await createPatientCase({
+        form: { ...form, email: user.email || form.email },
+        treatmentName: treatment?.name
+      });
+      if (typeof window !== 'undefined') window.sessionStorage.removeItem(PENDING_CASE_KEY);
+      setSubmittedCase(createdCase);
+      setFiles([]);
+      setRestoredDraft(false);
+    } catch (error) {
+      console.error('Unable to create CareAtlas case', error);
+      setSubmitError(error?.message || 'We could not create your case. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  if (submittedRef) {
+  function resetForm() {
+    setSubmittedCase(null);
+    setStep(0);
+    setForm({
+      ...initialForm,
+      name: patientProfile?.displayName || user?.displayName || '',
+      email: user?.email || '',
+      country: patientProfile?.country || ''
+    });
+    setFiles([]);
+    setSubmitError('');
+  }
+
+  if (submittedCase) {
     return (
       <div className="case-success-shell">
         <span className="case-success-icon"><Check size={31}/></span>
-        <span className="eyebrow">CASE PREVIEW COMPLETE</span>
-        <h1>Your CareAtlas case structure is ready.</h1>
-        <p>This static preview did <strong>not</strong> transmit your information or files. When the secure backend is connected, this is the point where the encrypted case will be created and routed to the CareAtlas coordination team.</p>
-        <div className="case-reference"><small>Demo reference</small><strong>{submittedRef}</strong></div>
+        <span className="eyebrow">CASE SUBMITTED</span>
+        <h1>Your CareAtlas case is now live.</h1>
+        <p>Your treatment request has been securely saved to Firestore and is now available in your patient portal. Medical-document upload will be connected in Phase 6C.</p>
+        <div className="case-reference"><small>Case reference</small><strong>{submittedCase.caseNumber}</strong></div>
         <div className="success-actions">
-          <Link className="button" href="/compare">Compare hospitals <ArrowRight size={16}/></Link>
-          <button className="button button-ghost" type="button" onClick={() => { setSubmittedRef(''); setStep(0); setForm(initialForm); setFiles([]); }}>Start another preview</button>
+          <Link className="button" href="/patient">Open patient dashboard <ArrowRight size={16}/></Link>
+          <Link className="button button-ghost" href="/patient/cases">View my cases</Link>
+          <button className="button button-ghost" type="button" onClick={resetForm}>Start another case</button>
         </div>
       </div>
     );
@@ -109,12 +184,16 @@ export default function TreatmentPlanForm() {
             </div>
           ))}
         </div>
-        <div className="privacy-card"><ShieldCheck size={20}/><div><strong>Prototype privacy safeguard</strong><p>Medical files are displayed by filename only and are not uploaded or stored by this GitHub Pages preview.</p></div></div>
+        <div className="privacy-card"><ShieldCheck size={20}/><div><strong>Secure case data is live</strong><p>Your case details are stored behind Firebase Authentication and Firestore Security Rules. Medical-file storage is intentionally not enabled yet.</p></div></div>
       </aside>
 
       <div className="intake-main">
         <div className="mobile-progress"><span style={{ width: `${((step + 1) / steps.length) * 100}%` }} /></div>
         <div className="intake-heading"><span className="mini-label">STEP {step + 1} OF {steps.length}</span><h1>{steps[step][0]}</h1></div>
+
+        {restoredDraft && step === 4 && (
+          <div className="prototype-banner"><ShieldCheck size={17}/><div><strong>Your treatment request was restored.</strong><span>You signed in successfully. Review the details below and submit your real CareAtlas case.</span></div></div>
+        )}
 
         {step === 0 && (
           <div className="form-stack">
@@ -127,7 +206,7 @@ export default function TreatmentPlanForm() {
               <label className="field-label"><span>Country of residence *</span><input value={form.country} onChange={e => update('country', e.target.value)} placeholder="e.g. United Kingdom" /></label>
             </div>
             <div className="form-row-two">
-              <label className="field-label"><span>Email *</span><input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="patient@example.com" /></label>
+              <label className="field-label"><span>Email *</span><input type="email" value={form.email} readOnly={Boolean(user)} onChange={e => update('email', e.target.value)} placeholder="patient@example.com" /></label>
               <label className="field-label"><span>Phone / WhatsApp</span><input value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="Include country code" /></label>
             </div>
             <label className="field-label"><span>Preferred language</span><select value={form.language} onChange={e => update('language', e.target.value)}><option>English</option><option>Arabic</option><option>French</option><option>Spanish</option><option>Russian</option></select></label>
@@ -144,20 +223,20 @@ export default function TreatmentPlanForm() {
 
         {step === 2 && (
           <div className="form-stack">
-            <div className="prototype-banner medical-banner"><ShieldCheck size={18}/><div><strong>Do not upload real medical records to this public prototype.</strong><span>The browser only keeps filenames in memory for this demonstration. Nothing is transmitted.</span></div></div>
+            <div className="prototype-banner medical-banner"><ShieldCheck size={18}/><div><strong>Medical-file upload is coming in Phase 6C.</strong><span>You can select files here to preview the flow, but file contents and filenames are not saved to Firestore or uploaded anywhere.</span></div></div>
             <label className="upload-zone">
               <FileUp size={30}/>
-              <strong>Add sample medical documents</strong>
-              <span>PDF, JPG or PNG · up to 8 sample files</span>
+              <strong>Select medical documents for preview</strong>
+              <span>PDF, JPG or PNG · up to 8 files · not uploaded yet</span>
               <input type="file" accept=".pdf,image/jpeg,image/png" multiple onChange={addFiles} />
             </label>
-            {files.length > 0 && <div className="file-list">{files.map(file => <div className="file-row" key={file.id}><span className="file-icon"><FileText size={17}/></span><div><strong>{file.name}</strong><small>{prettyBytes(file.size)} · metadata only</small></div><button type="button" onClick={() => removeFile(file.id)} aria-label={`Remove ${file.name}`}><Trash2 size={16}/></button></div>)}</div>}
+            {files.length > 0 && <div className="file-list">{files.map(file => <div className="file-row" key={file.id}><span className="file-icon"><FileText size={17}/></span><div><strong>{file.name}</strong><small>{prettyBytes(file.size)} · browser preview only</small></div><button type="button" onClick={() => removeFile(file.id)} aria-label={`Remove ${file.name}`}><Trash2 size={16}/></button></div>)}</div>}
           </div>
         )}
 
         {step === 3 && (
           <div className="form-stack">
-            <div><span className="field-heading">Preferred treatment destinations</span><p className="field-help">Choose any that you already have in mind, or leave blank for CareAtlas recommendations.</p><div className="choice-grid destination-choice-grid">{destinations.map(d => <button type="button" onClick={() => toggleDestination(d.slug)} className={`choice-card destination-choice ${form.preferredDestinations.includes(d.slug) ? 'active' : ''}`} key={d.slug}><span>{d.flag}</span><strong>{d.name}</strong><small>{d.costIndex}</small></button>)}</div></div>
+            <div><span className="field-heading">Preferred treatment destinations</span><p className="field-help">Choose any that you already have in mind, or leave blank for CareAtlas recommendations.</p><div className="choice-grid destination-choice-grid">{destinations.map(destination => <button type="button" onClick={() => toggleDestination(destination.slug)} className={`choice-card destination-choice ${form.preferredDestinations.includes(destination.slug) ? 'active' : ''}`} key={destination.slug}><span>{destination.flag}</span><strong>{destination.name}</strong><small>{destination.costIndex}</small></button>)}</div></div>
             <div className="form-row-two"><label className="field-label"><span>Estimated total budget</span><select value={form.budget} onChange={e => update('budget', e.target.value)}><option value="">Not sure yet</option><option>Under $5,000</option><option>$5,000–$10,000</option><option>$10,000–$20,000</option><option>$20,000+</option></select></label><label className="field-label"><span>Who is travelling?</span><select value={form.companions} onChange={e => update('companions', e.target.value)}><option>Patient only</option><option>Patient + 1 attendant</option><option>Patient + family</option></select></label></div>
             <div><span className="field-heading">Travel assistance</span><div className="service-toggle-grid">{[['visa','Visa assistance'],['accommodation','Accommodation'],['airportPickup','Airport pickup']].map(([key,label]) => <button type="button" key={key} className={`service-toggle ${form[key] ? 'active' : ''}`} onClick={() => update(key, !form[key])}><span>{form[key] && <Check size={14}/>}</span>{label}</button>)}</div></div>
           </div>
@@ -165,17 +244,21 @@ export default function TreatmentPlanForm() {
 
         {step === 4 && (
           <div className="review-shell">
-            <div className="review-card"><span className="mini-label">PATIENT</span><h3>{form.name || 'Not provided'}</h3><p>{form.country} · {form.email}</p></div>
+            <div className="review-card"><span className="mini-label">PATIENT</span><h3>{form.name || 'Not provided'}</h3><p>{form.country} · {user?.email || form.email}</p></div>
             <div className="review-card"><span className="mini-label">MEDICAL NEED</span><h3>{treatment?.name}</h3><p>{form.urgency}</p><blockquote>{form.diagnosis || 'No summary provided.'}</blockquote></div>
-            <div className="review-card"><span className="mini-label">RECORDS</span><h3>{files.length} sample file{files.length === 1 ? '' : 's'} selected</h3><p>Prototype only — no files will be transmitted.</p></div>
-            <div className="review-card"><span className="mini-label">TRAVEL</span><h3>{form.preferredDestinations.length ? form.preferredDestinations.map(slug => destinations.find(d => d.slug === slug)?.name).join(', ') : 'Recommend the best destination'}</h3><p>{form.budget || 'Budget not specified'} · {form.companions}</p></div>
-            <div className="consent-note"><ShieldCheck size={19}/><p>By continuing in the production product, patients will explicitly consent to CareAtlas processing their case and sharing selected medical information only with providers they approve. This prototype does not submit anything.</p></div>
+            <div className="review-card"><span className="mini-label">RECORDS</span><h3>{files.length} file{files.length === 1 ? '' : 's'} selected for preview</h3><p>Files are not uploaded in Phase 6B. The case itself can still be submitted securely.</p></div>
+            <div className="review-card"><span className="mini-label">TRAVEL</span><h3>{form.preferredDestinations.length ? form.preferredDestinations.map(slug => destinations.find(destination => destination.slug === slug)?.name).join(', ') : 'Recommend the best destination'}</h3><p>{form.budget || 'Budget not specified'} · {form.companions}</p></div>
+            <div className="consent-note"><ShieldCheck size={19}/><p>Submitting creates a real CareAtlas case linked to your Firebase account. Provider sharing, formal consent records and medical-document access will be added in later backend phases.</p></div>
+            {!user && !authLoading && <div className="prototype-banner"><ShieldCheck size={17}/><div><strong>Account required to submit</strong><span>Your form will be kept in this browser while you create an account, then restored for final submission.</span></div></div>}
+            {submitError && <div className="prototype-banner"><ShieldCheck size={17}/><div><strong>Case was not created</strong><span>{submitError}</span></div></div>}
           </div>
         )}
 
         <div className="intake-footer">
-          <button type="button" className="back-button" onClick={() => setStep(prev => Math.max(0, prev - 1))} disabled={step === 0}><ArrowLeft size={16}/> Back</button>
-          {step < 4 ? <button type="button" className="button" disabled={!canContinue()} onClick={next}>Continue <ArrowRight size={17}/></button> : <button type="button" className="button" onClick={submit}>Complete case preview <ArrowRight size={17}/></button>}
+          <button type="button" className="back-button" onClick={() => setStep(prev => Math.max(0, prev - 1))} disabled={step === 0 || submitting}><ArrowLeft size={16}/> Back</button>
+          {step < 4
+            ? <button type="button" className="button" disabled={!canContinue()} onClick={next}>Continue <ArrowRight size={17}/></button>
+            : <button type="button" className="button" onClick={submit} disabled={submitting || authLoading}>{submitting ? 'Creating case…' : user ? 'Submit case to CareAtlas' : 'Create account & continue'} {!submitting && <ArrowRight size={17}/>}</button>}
         </div>
       </div>
     </div>

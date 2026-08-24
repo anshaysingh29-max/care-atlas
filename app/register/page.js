@@ -1,7 +1,7 @@
 import AuthForm from '@/components/AuthForm';
 
 export const metadata = {
-  title: 'Create Patient Access — CareAtlas'
+  title: 'Create Patient Account — CareAtlas'
 };
 
 export default function RegisterPage() {
@@ -9,10 +9,10 @@ export default function RegisterPage() {
     <section className="auth-page">
       <div className="container auth-layout">
         <div className="auth-story">
-          <span className="eyebrow light">START WITH CLARITY</span>
-          <h2>Build your treatment journey around the information that matters.</h2>
-          <p>Create prototype access, prepare your structured case and compare hospitals before deciding what to do next.</p>
-          <div className="auth-story-points"><span>01 <strong>Patient-first planning</strong></span><span>02 <strong>Transparent comparisons</strong></span><span>03 <strong>Privacy by design</strong></span></div>
+          <span className="eyebrow light">START WITH CAREATLAS</span>
+          <h2>Your treatment journey starts with a secure patient identity.</h2>
+          <p>Create an account to submit real treatment cases to Firestore and return to your patient dashboard from any browser.</p>
+          <div className="auth-story-points"><span>01 <strong>Secure sign-in</strong></span><span>02 <strong>Your own case access</strong></span><span>03 <strong>Persistent journey tracking</strong></span></div>
         </div>
         <AuthForm mode="register" />
       </div>
