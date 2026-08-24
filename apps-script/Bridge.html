@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <script>
+      const allowedOrigins = <?!= allowedOrigins ?>;
+      const requestChannel = 'careatlas-drive';
+      const responseChannel = 'careatlas-drive-response';
+      const readyChannel = 'careatlas-drive-ready';
+
+      function originAllowed(origin) {
+        return allowedOrigins.indexOf(origin) !== -1;
+      }
+
+      window.addEventListener('message', function(event) {
+        const message = event.data || {};
+        if (!originAllowed(event.origin) || message.channel !== requestChannel || !message.id) return;
+
+        const target = event.source;
+        const targetOrigin = event.origin;
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            target.postMessage({
+              channel: responseChannel,
+              id: message.id,
+              ok: true,
+              result: result
+            }, targetOrigin);
+          })
+          .withFailureHandler(function(error) {
+            target.postMessage({
+              channel: responseChannel,
+              id: message.id,
+              ok: false,
+              error: error && error.message ? error.message : String(error || 'Document gateway error')
+            }, targetOrigin);
+          })
+          .handleBridgeRequest({
+            action: message.action,
+            payload: message.payload || {}
+          });
+      });
+
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ channel: readyChannel }, '*');
+      }
+    </script>
+  </body>
+</html>

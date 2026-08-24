@@ -38,3 +38,6 @@ The frontend continues to use Next.js static export and the existing GitHub Page
 ## Medical data safety
 
 Until the Firebase-backed patient flow and controlled Drive document layer are completed, the public deployment remains a prototype. Do not collect real medical documents or real patient health information through the current demo flows.
+
+## Phase 6C — Google Drive medical documents
+CareAtlas now includes a zero/near-zero-cost private Google Drive document gateway for patient case files. See `PHASE6C_SETUP.md` before enabling real uploads. Firebase Storage is not used.

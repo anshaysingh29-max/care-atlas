@@ -144,6 +144,43 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+
+    // Google Drive-backed document metadata. Actual file bytes are never
+    // stored in Firestore and raw Drive links are not exposed to clients.
+    match /caseDocuments/{documentId} {
+      function linkedCase() {
+        return get(
+          /databases/$(database)/documents/cases/$(resource.data.caseId)
+        );
+      }
+
+      function requestedCase() {
+        return get(
+          /databases/$(database)/documents/cases/$(request.resource.data.caseId)
+        );
+      }
+
+      allow create: if signedIn()
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.storageProvider == 'google_drive'
+        && requestedCase().data.patientId == request.auth.uid;
+
+      allow read: if signedIn()
+        && (
+          resource.data.patientId == request.auth.uid ||
+          isCareAtlasStaff() ||
+          hospitalCanAccessCase(linkedCase().data)
+        );
+
+      allow update: if false;
+
+      allow delete: if signedIn()
+        && (
+          resource.data.patientId == request.auth.uid ||
+          isAdmin()
+        );
+    }
+
     match /hospitals/{hospitalDocId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
