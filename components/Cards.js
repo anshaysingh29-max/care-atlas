@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowUpRight, BadgeCheck, Clock3, MapPin, Star } from 'lucide-react';
+import CompareButton from './CompareButton';
 
 export function TreatmentCard({ treatment }) {
   return (
@@ -55,6 +56,7 @@ export function HospitalCard({ hospital }) {
           <div><small>Selected treatments from</small><strong>{hospital.price}</strong></div>
           <div className="response"><Clock3 size={15}/> {hospital.response}</div>
         </div>
+        <div className="hospital-compare-row"><CompareButton hospitalSlug={hospital.slug} /></div>
       </div>
     </article>
   );

@@ -80,7 +80,7 @@ export default function HomePage() {
 
       <section className="section journey-section">
         <div className="container journey-shell">
-          <SectionTitle eyebrow="HOW CAREATLAS WORKS" title="A medical journey with fewer unknowns." text="Phase 1 focuses on discovery. The product structure is already designed for treatment plans, patient dashboards and hospital responses in the next phase." align="center" />
+          <SectionTitle eyebrow="HOW CAREATLAS WORKS" title="A medical journey with fewer unknowns." text="Phase 2 adds structured treatment requests, hospital comparison and patient access while keeping the public discovery experience simple." align="center" />
           <div className="journey-grid">
             {[
               ['01', 'Tell us what you need', 'Explore by treatment or submit your case with the details you already have.'],

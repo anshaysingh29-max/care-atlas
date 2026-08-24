@@ -33,7 +33,7 @@ export default async function TreatmentDetailPage({ params }) {
             <ShieldCheck size={24}/>
             <h3>Start with information, not pressure.</h3>
             <p>Compare destinations and providers first. Exact suitability, procedure and pricing should be confirmed by the treating clinical team.</p>
-            <a className="button" href="mailto:concierge@careatlas.example?subject=Treatment%20Plan%20Request">Request treatment options <ArrowRight size={16}/></a>
+            <Link className="button" href="/get-treatment-plan">Request treatment options <ArrowRight size={16}/></Link>
           </div>
         </div>
       </section>

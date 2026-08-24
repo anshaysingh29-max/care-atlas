@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, BadgeCheck, Check, Clock3, Languages, MapPin, Star } from 'lucide-react';
 import { hospitals, doctors } from '@/lib/data';
+import CompareButton from '@/components/CompareButton';
 
 export function generateStaticParams() { return hospitals.map(h => ({ slug: h.slug })); }
 
@@ -27,7 +28,7 @@ export default async function HospitalProfilePage({ params }) {
 
       <section className="profile-nav"><div className="container"><a href="#overview">Overview</a><a href="#specialties">Specialties</a><a href="#doctors">Doctors</a><a href="#services">International Services</a></div></section>
 
-      <section className="section" id="overview"><div className="container profile-layout"><div><span className="eyebrow">OVERVIEW</span><h2>Built to support international patients.</h2><p className="large-copy">{hospital.name} is represented here as a demonstration provider profile for CareAtlas Phase 1. The layout is ready for verified hospital descriptions, accreditations, treatment pricing, facilities and patient-service information.</p><div className="metrics-grid">{hospital.metrics.map(([v,l]) => <div key={l}><strong>{v}</strong><span>{l}</span></div>)}</div></div><aside className="profile-action-card"><span className="mini-label">CARE COORDINATION</span><h3>Interested in this hospital?</h3><p>Start a CareAtlas enquiry and request a structured treatment plan from the provider.</p><div className="side-fact"><Clock3 size={17}/><div><small>Typical response</small><strong>{hospital.response}</strong></div></div><a className="button full-button" href={`mailto:concierge@careatlas.example?subject=${encodeURIComponent('Treatment plan request — ' + hospital.name)}`}>Request treatment plan <ArrowRight size={16}/></a></aside></div></section>
+      <section className="section" id="overview"><div className="container profile-layout"><div><span className="eyebrow">OVERVIEW</span><h2>Built to support international patients.</h2><p className="large-copy">{hospital.name} is represented here as a demonstration provider profile for the CareAtlas prototype. The layout is ready for verified hospital descriptions, accreditations, treatment pricing, facilities and patient-service information.</p><div className="metrics-grid">{hospital.metrics.map(([v,l]) => <div key={l}><strong>{v}</strong><span>{l}</span></div>)}</div></div><aside className="profile-action-card"><span className="mini-label">CARE COORDINATION</span><h3>Interested in this hospital?</h3><p>Start a CareAtlas enquiry and request a structured treatment plan from the provider.</p><div className="side-fact"><Clock3 size={17}/><div><small>Typical response</small><strong>{hospital.response}</strong></div></div><><Link className="button full-button" href="/get-treatment-plan">Request treatment plan <ArrowRight size={16}/></Link><div className="profile-compare-action"><CompareButton hospitalSlug={hospital.slug} /></div></></aside></div></section>
 
       <section className="section section-soft" id="specialties"><div className="container"><span className="eyebrow">SPECIALTIES</span><h2>Areas of care</h2><div className="feature-chip-grid">{hospital.specialties.map(s => <div key={s}><Check size={18}/><span>{s}</span></div>)}</div></div></section>
 

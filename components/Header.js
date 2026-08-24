@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { GitCompareArrows } from 'lucide-react';
 import Logo from './Logo';
 
 export default function Header() {
@@ -10,12 +11,13 @@ export default function Header() {
           <Link href="/treatments">Treatments</Link>
           <Link href="/destinations">Destinations</Link>
           <Link href="/hospitals">Hospitals</Link>
+          <Link href="/compare"><GitCompareArrows size={14}/> Compare</Link>
           <Link href="/how-it-works">How It Works</Link>
           <a href="#hospital-partners">For Hospitals</a>
         </nav>
         <div className="nav-actions">
-          <button className="text-button">Sign in</button>
-          <a className="button button-sm" href="mailto:concierge@careatlas.example?subject=Treatment%20Plan%20Request">Get Treatment Plan</a>
+          <Link className="text-button" href="/login">Sign in</Link>
+          <Link className="button button-sm" href="/get-treatment-plan">Get Treatment Plan</Link>
         </div>
       </div>
     </header>

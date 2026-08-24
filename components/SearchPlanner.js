@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Search } from 'lucide-react';
 import { treatments, destinations } from '@/lib/data';
 
 export default function SearchPlanner() {
+  const router = useRouter();
   const [treatment, setTreatment] = useState('knee-replacement');
   const [destination, setDestination] = useState('recommend');
 
   function handleSubmit(e) {
     e.preventDefault();
     const treatmentPart = treatment ? `/treatments/${treatment}` : '/treatments';
-    window.location.href = destination === 'recommend' ? treatmentPart : `${treatmentPart}?destination=${destination}`;
+    router.push(destination === 'recommend' ? treatmentPart : `${treatmentPart}?destination=${destination}`);
   }
 
   return (

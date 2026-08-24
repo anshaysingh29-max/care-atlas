@@ -1,18 +1,33 @@
-# CareAtlas — Phase 1
+# CareAtlas
 
-A working Next.js prototype for the public CareAtlas medical-travel discovery experience.
+**Healthcare without borders.**
 
-## Included routes
+CareAtlas is a medical-travel product concept for international patients to discover treatments, explore destinations, compare hospitals and prepare a structured treatment request.
 
-- `/` — Homepage and treatment search
-- `/treatments` — Treatment discovery
-- `/treatments/[slug]` — Treatment detail
-- `/destinations` — Destination discovery
-- `/destinations/[country]` — Destination detail
-- `/hospitals` — Hospital directory
-- `/hospitals/[slug]` — Hospital profile
-- `/doctors/[slug]` — Doctor profile
-- `/how-it-works` — CareAtlas journey
+## Current build: Phase 2
+
+Phase 1 public discovery:
+- Homepage and treatment search
+- Treatment pages
+- Destination pages
+- Hospital directory and profiles
+- Doctor profiles
+- How it works
+
+Phase 2 conversion experience:
+- 5-step Get Treatment Plan intake
+- Medical-record selection UI with a prototype privacy safeguard
+- Hospital comparison (up to 3 providers)
+- Browser-persisted comparison shortlist
+- Patient sign-in and registration prototype
+- Conversion CTAs wired into hospital, doctor and treatment pages
+- GitHub Pages static-export configuration
+
+## Important prototype limitation
+
+The GitHub Pages version is a **static product preview**. It deliberately does **not** upload medical records, store passwords, create real user accounts, or transmit patient medical information. Those capabilities require a secure backend, authentication service, encrypted storage, consent controls and access/audit policies before real patient data is collected.
+
+Provider names, ratings, accreditations, pricing and doctors in the demo dataset are illustrative placeholders and must be replaced with verified partner data before production use.
 
 ## Run locally
 
@@ -23,19 +38,6 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-## Important before production
+## GitHub Pages
 
-The hospitals, doctors, ratings, prices, accreditations and profile metrics are **demonstration data** created to complete the Phase 1 UX. Replace them with verified partner data before launch.
-
-The current enquiry CTAs use placeholder `@careatlas.example` email addresses so the prototype has visible interaction without requiring backend credentials. These should be replaced by the Phase 2 case intake flow.
-
-## Phase 2 connection points
-
-The data model and route structure are ready for:
-
-- authentication
-- multi-step treatment-plan intake
-- private document upload
-- hospital comparison
-- patient dashboard
-- real treatment-plan requests
+The project uses `output: 'export'` and the Pages workflow at `.github/workflows/nextjs.yml`. Push to `main` to trigger a deployment.
