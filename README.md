@@ -1,8 +1,8 @@
 # CareAtlas
 
-CareAtlas is a medical-travel marketplace and coordination product prototype built with Next.js.
+CareAtlas is a medical-travel marketplace and coordination platform built with Next.js.
 
-## Current prototype scope
+## Product phases
 
 ### Phase 1 — Public marketplace
 Treatments, destinations, hospitals, doctors and discovery.
@@ -19,6 +19,9 @@ Hospital case inbox, shared-record review, treatment-plan creation, consultation
 ### Phase 5 — CareAtlas operations
 Admin dashboard, CRM case pipeline, patients, hospital onboarding, doctors, treatment-plan oversight, coordinators, content governance and analytics.
 
+### Phase 6A — Firebase foundation
+Firebase Auth + Firestore SDK foundation, environment configuration, role model, Firestore security rules and deployment configuration. See `FIREBASE_SETUP.md`.
+
 ## Run locally
 
 ```bash
@@ -26,8 +29,12 @@ npm install
 npm run dev
 ```
 
-## Static hosting
-The project uses Next.js static export and is compatible with the existing GitHub Pages workflow.
+For Firebase-backed work, copy `.env.example` to `.env.local` and enter the Firebase Web App configuration from Firebase Console.
 
-## Prototype safety
-All healthcare providers, doctors, patients, prices, medical records, metrics and operational states included in the repository are demonstration content. Do not use the GitHub Pages prototype to collect or process real medical information or real passwords.
+## Current hosting
+
+The frontend continues to use Next.js static export and the existing GitHub Pages workflow. `firebase.json` is included so we can move the static frontend to Firebase Hosting later without redesigning it.
+
+## Medical data safety
+
+Until the Firebase-backed patient flow and controlled Drive document layer are completed, the public deployment remains a prototype. Do not collect real medical documents or real patient health information through the current demo flows.

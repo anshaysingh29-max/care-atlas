@@ -1,0 +1,320 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function currentUser() {
+      return get(
+        /databases/$(database)/documents/users/$(request.auth.uid)
+      );
+    }
+
+    function hasUserProfile() {
+      return signedIn() &&
+        exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        );
+    }
+
+    function isCareAtlasStaff() {
+      return hasUserProfile() &&
+        currentUser().data.role in [
+          'careatlas_coordinator',
+          'careatlas_admin',
+          'super_admin'
+        ];
+    }
+
+    function isAdmin() {
+      return hasUserProfile() &&
+        currentUser().data.role in [
+          'careatlas_admin',
+          'super_admin'
+        ];
+    }
+
+    function isHospitalUser() {
+      return hasUserProfile() &&
+        currentUser().data.role in [
+          'hospital_admin',
+          'hospital_doctor',
+          'hospital_coordinator'
+        ];
+    }
+
+    function hospitalId() {
+      return currentUser().data.hospitalId;
+    }
+
+    function ownsCase(caseData) {
+      return signedIn() &&
+        caseData.patientId == request.auth.uid;
+    }
+
+    function hospitalCanAccessCase(caseData) {
+      return isHospitalUser() &&
+        hospitalId() in caseData.get('assignedHospitalIds', []);
+    }
+
+
+    // =========================================================
+    // USERS
+    // =========================================================
+
+    match /users/{userId} {
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'patient';
+
+      allow read: if signedIn()
+        && (
+          request.auth.uid == userId ||
+          isCareAtlasStaff()
+        );
+
+      // Users may edit their own profile but cannot promote
+      // themselves or change their hospital assignment.
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role
+        && !request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasAny(['hospitalId']);
+
+      allow update: if isAdmin();
+
+      allow delete: if false;
+    }
+
+
+    // =========================================================
+    // PATIENTS
+    // Document ID will normally equal Firebase Auth UID.
+    // =========================================================
+
+    match /patients/{patientId} {
+
+      allow create: if signedIn()
+        && request.auth.uid == patientId;
+
+      allow read: if signedIn()
+        && (
+          request.auth.uid == patientId ||
+          isCareAtlasStaff()
+        );
+
+      allow update: if signedIn()
+        && (
+          request.auth.uid == patientId ||
+          isCareAtlasStaff()
+        );
+
+      allow delete: if false;
+    }
+
+
+    // =========================================================
+    // CASES
+    // =========================================================
+
+    match /cases/{caseId} {
+
+      allow create: if signedIn()
+        && request.resource.data.patientId == request.auth.uid;
+
+      allow read: if signedIn()
+        && (
+          ownsCase(resource.data) ||
+          isCareAtlasStaff() ||
+          hospitalCanAccessCase(resource.data)
+        );
+
+      // Patient can edit their own case, but cannot assign
+      // hospitals, coordinators or manipulate workflow status.
+      allow update: if signedIn()
+        && ownsCase(resource.data)
+        && !request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasAny([
+            'patientId',
+            'assignedHospitalIds',
+            'coordinatorId',
+            'status'
+          ]);
+
+      allow update: if isCareAtlasStaff();
+
+      allow delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // HOSPITALS
+    // Public catalogue data can be read without login.
+    // =========================================================
+
+    match /hospitals/{hospitalDocId} {
+
+      allow read: if true;
+
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // DOCTORS
+    // =========================================================
+
+    match /doctors/{doctorId} {
+
+      allow read: if true;
+
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // TREATMENTS
+    // =========================================================
+
+    match /treatments/{treatmentId} {
+
+      allow read: if true;
+
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // DESTINATIONS
+    // =========================================================
+
+    match /destinations/{destinationId} {
+
+      allow read: if true;
+
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // TREATMENT PLANS
+    // =========================================================
+
+    match /treatmentPlans/{planId} {
+
+      allow read: if signedIn()
+        && (
+          isCareAtlasStaff() ||
+          resource.data.patientId == request.auth.uid ||
+          (
+            isHospitalUser() &&
+            resource.data.hospitalId == hospitalId()
+          )
+        );
+
+      allow create: if signedIn()
+        && (
+          isCareAtlasStaff() ||
+          (
+            isHospitalUser() &&
+            request.resource.data.hospitalId == hospitalId()
+          )
+        );
+
+      allow update: if signedIn()
+        && (
+          isCareAtlasStaff() ||
+          (
+            isHospitalUser() &&
+            resource.data.hospitalId == hospitalId()
+          )
+        );
+
+      allow delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // CONSULTATIONS
+    // =========================================================
+
+    match /consultations/{consultationId} {
+
+      allow read: if signedIn()
+        && (
+          isCareAtlasStaff() ||
+          resource.data.patientId == request.auth.uid ||
+          (
+            isHospitalUser() &&
+            resource.data.hospitalId == hospitalId()
+          )
+        );
+
+      allow create: if signedIn();
+
+      allow update: if signedIn()
+        && (
+          isCareAtlasStaff() ||
+          resource.data.patientId == request.auth.uid ||
+          (
+            isHospitalUser() &&
+            resource.data.hospitalId == hospitalId()
+          )
+        );
+
+      allow delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // CONSENTS
+    // Patients can create/read their own consent records.
+    // =========================================================
+
+    match /consents/{consentId} {
+
+      allow create: if signedIn()
+        && request.resource.data.patientId == request.auth.uid;
+
+      allow read: if signedIn()
+        && (
+          resource.data.patientId == request.auth.uid ||
+          isCareAtlasStaff()
+        );
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+
+    // =========================================================
+    // AUDIT LOGS
+    // Users should never modify audit history.
+    // =========================================================
+
+    match /auditLogs/{logId} {
+
+      allow read: if isAdmin();
+
+      allow create: if isCareAtlasStaff();
+
+      allow update, delete: if false;
+    }
+
+
+    // =========================================================
+    // DEFAULT DENY
+    // Anything we haven't explicitly allowed stays inaccessible.
+    // =========================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
