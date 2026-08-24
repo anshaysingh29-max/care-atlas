@@ -37,7 +37,7 @@ export default function AuthForm({ mode = 'login' }) {
         <span className="eyebrow">PROTOTYPE ACCESS READY</span>
         <h2>{isRegister ? 'Your demo account is ready.' : 'You are signed in for this browser session.'}</h2>
         <p>CareAtlas is currently hosted as a static preview. No password was stored or transmitted. Real authentication will be connected when the secure backend is introduced.</p>
-        <button className="button full-button" type="button" onClick={() => router.push('/get-treatment-plan')}>Continue to treatment planner <ArrowRight size={17}/></button>
+        <button className="button full-button" type="button" onClick={() => router.push('/patient')}>Open patient dashboard <ArrowRight size={17}/></button>
       </div>
     );
   }

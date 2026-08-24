@@ -16,7 +16,7 @@ export default function Header() {
           <a href="#hospital-partners">For Hospitals</a>
         </nav>
         <div className="nav-actions">
-          <Link className="text-button" href="/login">Sign in</Link>
+          <Link className="text-button" href="/patient">Patient portal</Link>
           <Link className="button button-sm" href="/get-treatment-plan">Get Treatment Plan</Link>
         </div>
       </div>
