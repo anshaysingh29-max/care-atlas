@@ -24,12 +24,7 @@
 
         google.script.run
           .withSuccessHandler(function(result) {
-            target.postMessage({
-              channel: responseChannel,
-              id: message.id,
-              ok: true,
-              result: result
-            }, targetOrigin);
+            target.postMessage({ channel: responseChannel, id: message.id, ok: true, result: result }, targetOrigin);
           })
           .withFailureHandler(function(error) {
             target.postMessage({
@@ -39,15 +34,23 @@
               error: error && error.message ? error.message : String(error || 'Document gateway error')
             }, targetOrigin);
           })
-          .handleBridgeRequest({
-            action: message.action,
-            payload: message.payload || {}
-          });
+          .handleBridgeRequest({ action: message.action, payload: message.payload || {} });
       });
 
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ channel: readyChannel }, '*');
+      function announceReady() {
+        try {
+          if (window.top && window.top !== window) {
+            window.top.postMessage({ channel: readyChannel }, '*');
+          }
+        } catch (error) {
+          console.error('Could not announce CareAtlas gateway readiness.', error);
+        }
       }
+
+      announceReady();
+      window.addEventListener('load', announceReady);
+      setTimeout(announceReady, 250);
+      setTimeout(announceReady, 1000);
     </script>
   </body>
 </html>

@@ -8,42 +8,35 @@ service cloud.firestore {
     }
 
     function currentUser() {
-      return get(
-        /databases/$(database)/documents/users/$(request.auth.uid)
-      );
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     function hasUserProfile() {
-      return signedIn() &&
-        exists(
-          /databases/$(database)/documents/users/$(request.auth.uid)
-        );
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     function isCareAtlasStaff() {
-      return hasUserProfile() &&
-        currentUser().data.role in [
-          'careatlas_coordinator',
-          'careatlas_admin',
-          'super_admin'
-        ];
+      return hasUserProfile() && currentUser().data.role in [
+        'careatlas_coordinator',
+        'careatlas_operations',
+        'careatlas_admin',
+        'super_admin'
+      ];
     }
 
     function isAdmin() {
-      return hasUserProfile() &&
-        currentUser().data.role in [
-          'careatlas_admin',
-          'super_admin'
-        ];
+      return hasUserProfile() && currentUser().data.role in [
+        'careatlas_admin',
+        'super_admin'
+      ];
     }
 
     function isHospitalUser() {
-      return hasUserProfile() &&
-        currentUser().data.role in [
-          'hospital_admin',
-          'hospital_doctor',
-          'hospital_coordinator'
-        ];
+      return hasUserProfile() && currentUser().data.role in [
+        'hospital_admin',
+        'hospital_doctor',
+        'hospital_coordinator'
+      ];
     }
 
     function hospitalId() {
@@ -51,13 +44,11 @@ service cloud.firestore {
     }
 
     function ownsCase(caseData) {
-      return signedIn() &&
-        caseData.patientId == request.auth.uid;
+      return signedIn() && caseData.patientId == request.auth.uid;
     }
 
     function hospitalCanAccessCase(caseData) {
-      return isHospitalUser() &&
-        hospitalId() in caseData.get('assignedHospitalIds', []);
+      return isHospitalUser() && hospitalId() in caseData.get('assignedHospitalIds', []);
     }
 
     match /users/{userId} {
@@ -66,24 +57,13 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.role == 'patient';
 
-      allow read: if signedIn()
-        && (
-          request.auth.uid == userId ||
-          isCareAtlasStaff()
-        );
+      allow read: if signedIn() && (request.auth.uid == userId || isCareAtlasStaff());
 
       allow update: if signedIn()
         && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data)
-          .affectedKeys()
-          .hasAny([
-            'userId',
-            'email',
-            'role',
-            'hospitalId',
-            'status',
-            'createdAt'
-          ]);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'userId','email','role','hospitalId','status','createdAt'
+        ]);
 
       allow update: if isAdmin();
       allow delete: if false;
@@ -94,17 +74,11 @@ service cloud.firestore {
         && request.auth.uid == patientId
         && request.resource.data.userId == request.auth.uid;
 
-      allow read: if signedIn()
-        && (
-          request.auth.uid == patientId ||
-          isCareAtlasStaff()
-        );
+      allow read: if signedIn() && (request.auth.uid == patientId || isCareAtlasStaff());
 
       allow update: if signedIn()
         && request.auth.uid == patientId
-        && !request.resource.data.diff(resource.data)
-          .affectedKeys()
-          .hasAny(['userId', 'email', 'createdAt']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId','email','createdAt']);
 
       allow update: if isCareAtlasStaff();
       allow delete: if false;
@@ -118,46 +92,30 @@ service cloud.firestore {
         && request.resource.data.assignedHospitalIds.size() == 0
         && request.resource.data.coordinatorId == null;
 
-      allow read: if signedIn()
-        && (
-          ownsCase(resource.data) ||
-          isCareAtlasStaff() ||
-          hospitalCanAccessCase(resource.data)
-        );
+      allow read: if signedIn() && (
+        ownsCase(resource.data) ||
+        isCareAtlasStaff() ||
+        hospitalCanAccessCase(resource.data)
+      );
 
       allow update: if signedIn()
         && ownsCase(resource.data)
-        && !request.resource.data.diff(resource.data)
-          .affectedKeys()
-          .hasAny([
-            'patientId',
-            'caseNumber',
-            'assignedHospitalIds',
-            'coordinatorId',
-            'status',
-            'currentStage',
-            'createdAt',
-            'submittedAt'
-          ]);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'patientId','caseNumber','assignedHospitalIds','coordinatorId','coordinatorName',
+          'status','currentStage','createdAt','submittedAt'
+        ]);
 
       allow update: if isCareAtlasStaff();
       allow delete: if isAdmin();
     }
 
-
-    // Google Drive-backed document metadata. Actual file bytes are never
-    // stored in Firestore and raw Drive links are not exposed to clients.
     match /caseDocuments/{documentId} {
       function linkedCase() {
-        return get(
-          /databases/$(database)/documents/cases/$(resource.data.caseId)
-        );
+        return get(/databases/$(database)/documents/cases/$(resource.data.caseId));
       }
 
       function requestedCase() {
-        return get(
-          /databases/$(database)/documents/cases/$(request.resource.data.caseId)
-        );
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
       }
 
       allow create: if signedIn()
@@ -165,20 +123,14 @@ service cloud.firestore {
         && request.resource.data.storageProvider == 'google_drive'
         && requestedCase().data.patientId == request.auth.uid;
 
-      allow read: if signedIn()
-        && (
-          resource.data.patientId == request.auth.uid ||
-          isCareAtlasStaff() ||
-          hospitalCanAccessCase(linkedCase().data)
-        );
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff() ||
+        hospitalCanAccessCase(linkedCase().data)
+      );
 
       allow update: if false;
-
-      allow delete: if signedIn()
-        && (
-          resource.data.patientId == request.auth.uid ||
-          isAdmin()
-        );
+      allow delete: if signedIn() && (resource.data.patientId == request.auth.uid || isAdmin());
     }
 
     match /hospitals/{hospitalDocId} {
@@ -202,80 +154,55 @@ service cloud.firestore {
     }
 
     match /treatmentPlans/{planId} {
-      allow read: if signedIn()
-        && (
-          isCareAtlasStaff() ||
-          resource.data.patientId == request.auth.uid ||
-          (
-            isHospitalUser() &&
-            resource.data.hospitalId == hospitalId()
-          )
-        );
+      allow read: if signedIn() && (
+        isCareAtlasStaff() ||
+        resource.data.patientId == request.auth.uid ||
+        (isHospitalUser() && resource.data.hospitalId == hospitalId())
+      );
 
-      allow create: if signedIn()
-        && (
-          isCareAtlasStaff() ||
-          (
-            isHospitalUser() &&
-            request.resource.data.hospitalId == hospitalId()
-          )
-        );
+      allow create: if signedIn() && (
+        isCareAtlasStaff() ||
+        (isHospitalUser() && request.resource.data.hospitalId == hospitalId())
+      );
 
-      allow update: if signedIn()
-        && (
-          isCareAtlasStaff() ||
-          (
-            isHospitalUser() &&
-            resource.data.hospitalId == hospitalId()
-          )
-        );
+      allow update: if signedIn() && (
+        isCareAtlasStaff() ||
+        (isHospitalUser() && resource.data.hospitalId == hospitalId())
+      );
 
       allow delete: if isAdmin();
     }
 
     match /consultations/{consultationId} {
-      allow read: if signedIn()
-        && (
-          isCareAtlasStaff() ||
-          resource.data.patientId == request.auth.uid ||
-          (
-            isHospitalUser() &&
-            resource.data.hospitalId == hospitalId()
-          )
-        );
+      allow read: if signedIn() && (
+        isCareAtlasStaff() ||
+        resource.data.patientId == request.auth.uid ||
+        (isHospitalUser() && resource.data.hospitalId == hospitalId())
+      );
 
       allow create: if signedIn();
 
-      allow update: if signedIn()
-        && (
-          isCareAtlasStaff() ||
-          resource.data.patientId == request.auth.uid ||
-          (
-            isHospitalUser() &&
-            resource.data.hospitalId == hospitalId()
-          )
-        );
+      allow update: if signedIn() && (
+        isCareAtlasStaff() ||
+        resource.data.patientId == request.auth.uid ||
+        (isHospitalUser() && resource.data.hospitalId == hospitalId())
+      );
 
       allow delete: if isAdmin();
     }
 
     match /consents/{consentId} {
-      allow create: if signedIn()
-        && request.resource.data.patientId == request.auth.uid;
-
-      allow read: if signedIn()
-        && (
-          resource.data.patientId == request.auth.uid ||
-          isCareAtlasStaff()
-        );
-
-      allow update: if false;
-      allow delete: if false;
+      allow create: if signedIn() && request.resource.data.patientId == request.auth.uid;
+      allow read: if signedIn() && (resource.data.patientId == request.auth.uid || isCareAtlasStaff());
+      allow update, delete: if false;
     }
 
     match /auditLogs/{logId} {
       allow read: if isAdmin();
-      allow create: if isCareAtlasStaff();
+      allow create: if isCareAtlasStaff()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.action is string
+        && request.resource.data.source == 'admin_web';
       allow update, delete: if false;
     }
 
