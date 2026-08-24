@@ -102,10 +102,10 @@ function uploadDocument_(payload) {
 function downloadDocument_(payload) {
   const user = verifyFirebaseUser_(payload.idToken);
   const metadata = getDocumentMetadata_(payload.documentId, payload.idToken);
-  verifyMetadataUserAccess_(metadata, user.localId);
+  authorizeDocumentRead_(metadata, user, payload.idToken);
 
   const file = DriveApp.getFileById(metadata.driveFileId);
-  verifyDriveCapability_(file, metadata, user.localId);
+  verifyDriveCapability_(file, metadata);
   const blob = file.getBlob();
 
   return {
@@ -119,10 +119,10 @@ function downloadDocument_(payload) {
 function deleteDocument_(payload) {
   const user = verifyFirebaseUser_(payload.idToken);
   const metadata = getDocumentMetadata_(payload.documentId, payload.idToken);
-  verifyMetadataUserAccess_(metadata, user.localId);
+  verifyPatientOwnsMetadata_(metadata, user.localId);
 
   const file = DriveApp.getFileById(metadata.driveFileId);
-  verifyDriveCapability_(file, metadata, user.localId);
+  verifyDriveCapability_(file, metadata);
   file.setTrashed(true);
 
   return { deleted: true, driveFileId: metadata.driveFileId };
@@ -133,16 +133,41 @@ function getDocumentMetadata_(documentId, idToken) {
   return firestoreFieldsToObject_(document.fields || {});
 }
 
-function verifyMetadataUserAccess_(metadata, uid) {
+function verifyPatientOwnsMetadata_(metadata, uid) {
   if (!metadata || metadata.patientId !== uid) {
-    throw new Error('You do not have access to this medical document.');
+    throw new Error('Only the patient who uploaded this document can remove it.');
   }
   if (!metadata.driveFileId || !metadata.driveAccessKey) {
     throw new Error('This document record is incomplete.');
   }
 }
 
-function verifyDriveCapability_(file, metadata, uid) {
+function authorizeDocumentRead_(metadata, user, idToken) {
+  if (!metadata || !metadata.driveFileId || !metadata.driveAccessKey || !metadata.caseId) {
+    throw new Error('This document record is incomplete.');
+  }
+
+  if (metadata.patientId === user.localId) return;
+
+  const userDoc = getFirestoreDocument_('users/' + requireSafeId_(user.localId, 'userId'), idToken);
+  const profile = firestoreFieldsToObject_(userDoc.fields || {});
+  const role = profile.role || '';
+
+  if (['careatlas_coordinator', 'careatlas_operations', 'careatlas_admin', 'super_admin'].indexOf(role) !== -1) {
+    return;
+  }
+
+  if (['hospital_admin', 'hospital_doctor', 'hospital_coordinator'].indexOf(role) !== -1 && profile.hospitalId) {
+    const caseDoc = getFirestoreDocument_('cases/' + requireSafeId_(metadata.caseId, 'caseId'), idToken);
+    const caseData = firestoreFieldsToObject_(caseDoc.fields || {});
+    const assigned = Array.isArray(caseData.assignedHospitalIds) ? caseData.assignedHospitalIds : [];
+    if (assigned.indexOf(profile.hospitalId) !== -1) return;
+  }
+
+  throw new Error('You do not have access to this medical document.');
+}
+
+function verifyDriveCapability_(file, metadata) {
   let description;
   try {
     description = JSON.parse(file.getDescription() || '{}');
@@ -152,7 +177,7 @@ function verifyDriveCapability_(file, metadata, uid) {
 
   if (
     description.system !== 'careatlas' ||
-    description.patientId !== uid ||
+    description.patientId !== metadata.patientId ||
     description.caseId !== metadata.caseId ||
     description.accessKey !== metadata.driveAccessKey
   ) {

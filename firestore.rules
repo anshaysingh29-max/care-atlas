@@ -39,6 +39,13 @@ service cloud.firestore {
       ];
     }
 
+    function isHospitalClinicalUser() {
+      return hasUserProfile() && currentUser().data.role in [
+        'hospital_admin',
+        'hospital_doctor'
+      ];
+    }
+
     function hospitalId() {
       return currentUser().data.hospitalId;
     }
@@ -48,7 +55,8 @@ service cloud.firestore {
     }
 
     function hospitalCanAccessCase(caseData) {
-      return isHospitalUser() && hospitalId() in caseData.get('assignedHospitalIds', []);
+      return isHospitalUser()
+        && hospitalId() in caseData.get('assignedHospitalIds', []);
     }
 
     match /users/{userId} {
@@ -57,7 +65,10 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.role == 'patient';
 
-      allow read: if signedIn() && (request.auth.uid == userId || isCareAtlasStaff());
+      allow read: if signedIn() && (
+        request.auth.uid == userId ||
+        isCareAtlasStaff()
+      );
 
       allow update: if signedIn()
         && request.auth.uid == userId
@@ -74,11 +85,16 @@ service cloud.firestore {
         && request.auth.uid == patientId
         && request.resource.data.userId == request.auth.uid;
 
-      allow read: if signedIn() && (request.auth.uid == patientId || isCareAtlasStaff());
+      allow read: if signedIn() && (
+        request.auth.uid == patientId ||
+        isCareAtlasStaff()
+      );
 
       allow update: if signedIn()
         && request.auth.uid == patientId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId','email','createdAt']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'userId','email','createdAt'
+        ]);
 
       allow update: if isCareAtlasStaff();
       allow delete: if false;
@@ -130,7 +146,10 @@ service cloud.firestore {
       );
 
       allow update: if false;
-      allow delete: if signedIn() && (resource.data.patientId == request.auth.uid || isAdmin());
+      allow delete: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isAdmin()
+      );
     }
 
     match /hospitals/{hospitalDocId} {
@@ -154,55 +173,93 @@ service cloud.firestore {
     }
 
     match /treatmentPlans/{planId} {
+      function requestedPlanCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
       allow read: if signedIn() && (
         isCareAtlasStaff() ||
         resource.data.patientId == request.auth.uid ||
         (isHospitalUser() && resource.data.hospitalId == hospitalId())
       );
 
-      allow create: if signedIn() && (
-        isCareAtlasStaff() ||
-        (isHospitalUser() && request.resource.data.hospitalId == hospitalId())
-      );
+      allow create: if isHospitalClinicalUser()
+        && request.resource.data.hospitalId == hospitalId()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.patientId == requestedPlanCase().data.patientId
+        && hospitalCanAccessCase(requestedPlanCase().data)
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.source == 'hospital_web';
 
-      allow update: if signedIn() && (
-        isCareAtlasStaff() ||
-        (isHospitalUser() && resource.data.hospitalId == hospitalId())
+      allow create: if isCareAtlasStaff();
+
+      allow update: if isCareAtlasStaff() || (
+        isHospitalClinicalUser()
+        && resource.data.hospitalId == hospitalId()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'caseId','caseNumber','patientId','hospitalId','createdBy','createdAt','source'
+        ])
       );
 
       allow delete: if isAdmin();
     }
 
     match /consultations/{consultationId} {
+      function requestedConsultationCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
       allow read: if signedIn() && (
         isCareAtlasStaff() ||
         resource.data.patientId == request.auth.uid ||
         (isHospitalUser() && resource.data.hospitalId == hospitalId())
       );
 
-      allow create: if signedIn();
+      allow create: if isHospitalUser()
+        && request.resource.data.hospitalId == hospitalId()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.patientId == requestedConsultationCase().data.patientId
+        && hospitalCanAccessCase(requestedConsultationCase().data)
+        && request.resource.data.status == 'proposed'
+        && request.resource.data.source == 'hospital_web';
 
-      allow update: if signedIn() && (
-        isCareAtlasStaff() ||
-        resource.data.patientId == request.auth.uid ||
-        (isHospitalUser() && resource.data.hospitalId == hospitalId())
+      allow create: if isCareAtlasStaff();
+
+      allow update: if isCareAtlasStaff() || (
+        isHospitalUser()
+        && resource.data.hospitalId == hospitalId()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'caseId','caseNumber','patientId','hospitalId','createdBy','createdAt','source'
+        ])
       );
 
       allow delete: if isAdmin();
     }
 
     match /consents/{consentId} {
-      allow create: if signedIn() && request.resource.data.patientId == request.auth.uid;
-      allow read: if signedIn() && (resource.data.patientId == request.auth.uid || isCareAtlasStaff());
+      allow create: if signedIn()
+        && request.resource.data.patientId == request.auth.uid;
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff()
+      );
       allow update, delete: if false;
     }
 
     match /auditLogs/{logId} {
       allow read: if isAdmin();
+
       allow create: if isCareAtlasStaff()
         && request.resource.data.actorId == request.auth.uid
         && request.resource.data.action is string
         && request.resource.data.source == 'admin_web';
+
+      allow create: if isHospitalUser()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.hospitalId == hospitalId()
+        && request.resource.data.action is string
+        && request.resource.data.source == 'hospital_web';
+
       allow update, delete: if false;
     }
 

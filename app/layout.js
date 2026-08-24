@@ -1,5 +1,6 @@
 import './globals.css';
 import './phase6d.css';
+import './phase6e.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/components/AuthProvider';
