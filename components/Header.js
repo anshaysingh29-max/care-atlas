@@ -13,7 +13,7 @@ export default function Header() {
           <Link href="/hospitals">Hospitals</Link>
           <Link href="/compare"><GitCompareArrows size={14}/> Compare</Link>
           <Link href="/how-it-works">How It Works</Link>
-          <a href="#hospital-partners">For Hospitals</a>
+          <Link href="/hospital-login">For Hospitals</Link>
         </nav>
         <div className="nav-actions">
           <Link className="text-button" href="/patient">Patient portal</Link>

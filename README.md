@@ -41,3 +41,7 @@ Open `http://localhost:3000`.
 ## GitHub Pages
 
 The project uses `output: 'export'` and the Pages workflow at `.github/workflows/nextjs.yml`. Push to `main` to trigger a deployment.
+
+
+## Phase 4
+Hospital Partner Portal is included. See `PHASE4_CHANGELOG.md`.

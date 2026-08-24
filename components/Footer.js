@@ -14,11 +14,12 @@ export default function Footer() {
           <Link href="/treatments">Treatments</Link>
           <Link href="/destinations">Destinations</Link>
           <Link href="/hospitals">Hospitals</Link>
+          <Link href="/compare">Compare hospitals</Link>
         </div>
         <div>
           <h4>CareAtlas</h4>
           <Link href="/how-it-works">How it works</Link>
-          <a href="#hospital-partners">For hospitals</a>
+          <Link href="/hospital-login">For hospitals</Link>
           <a href="mailto:hello@careatlas.example">Contact</a>
         </div>
         <div>
@@ -26,7 +27,7 @@ export default function Footer() {
           <p>CareAtlas supports medical travel planning and coordination. It does not replace medical advice from qualified clinicians.</p>
         </div>
       </div>
-      <div className="container footer-bottom">© 2026 CareAtlas. Phase 1 prototype.</div>
+      <div className="container footer-bottom">© 2026 CareAtlas. Phase 2 prototype.</div>
     </footer>
   );
 }
