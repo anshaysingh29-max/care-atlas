@@ -1,0 +1,3 @@
+import AdminAuthForm from '@/components/AdminAuthForm';
+export const metadata={title:'CareAtlas Operations Sign In'};
+export default function AdminLogin(){return <section className="auth-page admin-auth-page"><div className="container auth-layout"><div className="auth-story admin-auth-story"><span className="eyebrow light">CAREATLAS CONTROL CENTRE</span><h2>Operate the network without losing the patient journey.</h2><p>One queue for international cases, hospital partners, coordinators, treatment plans and marketplace quality.</p><div className="auth-story-points"><span>01 <strong>Case operations</strong></span><span>02 <strong>Partner governance</strong></span><span>03 <strong>Marketplace analytics</strong></span></div></div><AdminAuthForm/></div></section>}

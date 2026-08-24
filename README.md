@@ -1,33 +1,23 @@
 # CareAtlas
 
-**Healthcare without borders.**
+CareAtlas is a medical-travel marketplace and coordination product prototype built with Next.js.
 
-CareAtlas is a medical-travel product concept for international patients to discover treatments, explore destinations, compare hospitals and prepare a structured treatment request.
+## Current prototype scope
 
-## Current build: Phase 2
+### Phase 1 — Public marketplace
+Treatments, destinations, hospitals, doctors and discovery.
 
-Phase 1 public discovery:
-- Homepage and treatment search
-- Treatment pages
-- Destination pages
-- Hospital directory and profiles
-- Doctor profiles
-- How it works
+### Phase 2 — Conversion
+Treatment-plan intake, hospital comparison and patient sign-in/register prototypes.
 
-Phase 2 conversion experience:
-- 5-step Get Treatment Plan intake
-- Medical-record selection UI with a prototype privacy safeguard
-- Hospital comparison (up to 3 providers)
-- Browser-persisted comparison shortlist
-- Patient sign-in and registration prototype
-- Conversion CTAs wired into hospital, doctor and treatment pages
-- GitHub Pages static-export configuration
+### Phase 3 — Patient portal
+Patient dashboard, cases, treatment plans, documents, messages and journey tracking.
 
-## Important prototype limitation
+### Phase 4 — Hospital partner portal
+Hospital case inbox, shared-record review, treatment-plan creation, consultations and hospital profile management.
 
-The GitHub Pages version is a **static product preview**. It deliberately does **not** upload medical records, store passwords, create real user accounts, or transmit patient medical information. Those capabilities require a secure backend, authentication service, encrypted storage, consent controls and access/audit policies before real patient data is collected.
-
-Provider names, ratings, accreditations, pricing and doctors in the demo dataset are illustrative placeholders and must be replaced with verified partner data before production use.
+### Phase 5 — CareAtlas operations
+Admin dashboard, CRM case pipeline, patients, hospital onboarding, doctors, treatment-plan oversight, coordinators, content governance and analytics.
 
 ## Run locally
 
@@ -36,12 +26,8 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+## Static hosting
+The project uses Next.js static export and is compatible with the existing GitHub Pages workflow.
 
-## GitHub Pages
-
-The project uses `output: 'export'` and the Pages workflow at `.github/workflows/nextjs.yml`. Push to `main` to trigger a deployment.
-
-
-## Phase 4
-Hospital Partner Portal is included. See `PHASE4_CHANGELOG.md`.
+## Prototype safety
+All healthcare providers, doctors, patients, prices, medical records, metrics and operational states included in the repository are demonstration content. Do not use the GitHub Pages prototype to collect or process real medical information or real passwords.
