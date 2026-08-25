@@ -1,0 +1,6 @@
+'use client';
+import { useEffect,useState } from 'react';
+import { Landmark, ReceiptText } from 'lucide-react';
+import PartnerShell from '@/components/PartnerShell';
+import { formatPartnerDate,formatPartnerMoney,getPartnerCommissions } from '@/lib/firebase/partners';
+export default function PartnerPayoutsClient(){const[rows,setRows]=useState([]);useEffect(()=>{getPartnerCommissions().then(all=>setRows(all.filter(r=>['approved','paid'].includes(r.status)))).catch(()=>setRows([]));},[]);return <PartnerShell title="Payouts" subtitle="See approved commissions waiting for settlement and completed payouts."><div className="phase7a-payout-note"><Landmark size={20}/><div><strong>MVP payout tracking</strong><span>CareAtlas records approval and payment status here. Automated bank or UPI disbursement is intentionally not connected yet.</span></div></div><section className="portal-card phase7a-payout-list">{rows.map(r=><article key={r.id}><ReceiptText size={17}/><div><strong>{formatPartnerMoney(r.amount,r.currency)}</strong><span>{r.caseNumber} · {r.patientAlias}</span></div><div><i>{r.status}</i><small>{r.status==='paid'?formatPartnerDate(r.paidAt):'Awaiting settlement'}</small></div></article>)}{!rows.length&&<p className="phase7a-empty">No approved payouts yet.</p>}</section></PartnerShell>}

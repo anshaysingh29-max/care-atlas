@@ -1,0 +1,3 @@
+import PartnerAuthForm from '@/components/PartnerAuthForm';
+export const metadata={title:'Join CareAtlas Partners'};
+export default function PartnerRegister(){return <section className="auth-page phase7a-partner-auth-page"><div className="container auth-layout"><div className="auth-story phase7a-partner-story"><span className="eyebrow light">JOIN CAREATLAS PARTNERS</span><h2>Grow access to international care responsibly.</h2><p>Apply to become a referral partner. CareAtlas reviews every account before referral attribution activates.</p><div className="auth-story-points"><span>01 <strong>Apply</strong></span><span>02 <strong>Get approved</strong></span><span>03 <strong>Share & earn</strong></span></div></div><PartnerAuthForm mode="register"/></div></section>}

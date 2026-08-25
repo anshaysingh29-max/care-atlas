@@ -31,6 +31,14 @@ service cloud.firestore {
       ];
     }
 
+    function isReferralPartner() {
+      return hasUserProfile()
+        && currentUser().data.role == 'partner'
+        && currentUser().data.status != 'disabled'
+        && exists(/databases/$(database)/documents/partners/$(request.auth.uid))
+        && get(/databases/$(database)/documents/partners/$(request.auth.uid)).data.status == 'approved';
+    }
+
     function isHospitalUser() {
       return hasUserProfile() && currentUser().data.role in [
         'hospital_admin',
@@ -87,7 +95,8 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.role == 'patient';
+        && request.resource.data.status == 'active'
+        && request.resource.data.role in ['patient', 'partner'];
 
       allow read: if signedIn() && (
         request.auth.uid == userId ||
@@ -106,6 +115,7 @@ service cloud.firestore {
 
     match /patients/{patientId} {
       allow create: if signedIn()
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient'
         && request.auth.uid == patientId
         && request.resource.data.userId == request.auth.uid;
 
@@ -127,6 +137,7 @@ service cloud.firestore {
 
     match /cases/{caseId} {
       allow create: if signedIn()
+        && currentUser().data.role == 'patient'
         && request.resource.data.patientId == request.auth.uid
         && request.resource.data.status == 'submitted'
         && request.resource.data.currentStage == 'case_submitted'
@@ -259,6 +270,133 @@ service cloud.firestore {
         resource.data.patientId == request.auth.uid ||
         isAdmin()
       );
+    }
+
+
+    match /partners/{partnerId} {
+      allow create: if signedIn()
+        && request.auth.uid == partnerId
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'partner'
+        && request.resource.data.partnerId == request.auth.uid
+        && request.resource.data.status == 'pending_review'
+        && request.resource.data.commissionModel == 'revenue_share'
+        && request.resource.data.commissionRatePct == 0
+        && request.resource.data.termsAccepted == true
+        && request.resource.data.disclosureAccepted == true
+        && request.resource.data.termsVersion == '2026-08-25-v1'
+        && request.resource.data.referralCode is string
+        && request.resource.data.referralCode.size() >= 8
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        request.auth.uid == partnerId ||
+        isAdmin()
+      );
+
+      allow update: if signedIn()
+        && request.auth.uid == partnerId
+        && resource.data.status in ['pending_review', 'approved']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'country', 'phone', 'organization', 'partnerType', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /referralCodes/{code} {
+      // Public callers may validate a code by exact document ID, but cannot enumerate codes.
+      allow get: if true;
+      allow list: if false;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /referrals/{referralId} {
+      function requestedReferralCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      function requestedReferralCode() {
+        return get(/databases/$(database)/documents/referralCodes/$(request.resource.data.referralCode));
+      }
+
+      allow create: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.resource.data.referralId == referralId
+        && request.resource.data.caseId == referralId
+        && requestedReferralCase().data.patientId == request.auth.uid
+        && requestedReferralCode().data.status == 'active'
+        && request.resource.data.partnerId == requestedReferralCode().data.partnerId
+        && request.resource.data.caseNumber == requestedReferralCase().data.caseNumber
+        && request.resource.data.patientCountry == requestedReferralCase().data.patientCountry
+        && request.resource.data.treatmentName == requestedReferralCase().data.treatmentName
+        && request.resource.data.currentStage == requestedReferralCase().data.currentStage
+        && request.resource.data.caseStatus == requestedReferralCase().data.status
+        && request.resource.data.referralStatus == 'case_created'
+        && request.resource.data.commissionStatus == 'not_created'
+        && request.resource.data.attributionModel == 'first_valid_referrer'
+        && request.resource.data.attributionWindowDays == 60
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        isCareAtlasStaff() ||
+        (isReferralPartner() && resource.data.partnerId == request.auth.uid)
+      );
+
+      allow update: if isCareAtlasStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'currentStage', 'caseStatus', 'referralStatus', 'lockedAt', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'commissionStatus', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      // Attribution ownership is immutable in 7A. Any future override should use a dedicated audited server workflow.
+      allow delete: if false;
+    }
+
+    match /commissions/{commissionId} {
+      function requestedCommissionReferral() {
+        return get(/databases/$(database)/documents/referrals/$(request.resource.data.referralId));
+      }
+
+      allow read: if signedIn() && (
+        isAdmin() ||
+        (isReferralPartner() && resource.data.partnerId == request.auth.uid)
+      );
+
+      allow create: if isAdmin()
+        && request.resource.data.commissionId == commissionId
+        && request.resource.data.referralId == commissionId
+        && request.resource.data.partnerId == requestedCommissionReferral().data.partnerId
+        && requestedCommissionReferral().data.referralStatus == 'treatment_verified'
+        && request.resource.data.status == 'pending'
+        && request.resource.data.commissionModel == 'revenue_share'
+        && request.resource.data.ratePct is number
+        && request.resource.data.ratePct >= 0
+        && request.resource.data.ratePct <= 100
+        && request.resource.data.careAtlasRevenue is number
+        && request.resource.data.careAtlasRevenue >= 0
+        && request.resource.data.amount is number
+        && request.resource.data.amount >= 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'updatedAt', 'approvedAt', 'paidAt'
+        ])
+        && request.resource.data.status in ['approved', 'on_hold', 'paid', 'rejected']
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
     }
 
     match /hospitals/{hospitalDocId} {

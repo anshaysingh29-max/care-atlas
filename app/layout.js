@@ -2,9 +2,11 @@ import './globals.css';
 import './phase6d.css';
 import './phase6e.css';
 import './phase6f.css';
+import './phase7a.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/components/AuthProvider';
+import ReferralCapture from '@/components/ReferralCapture';
 
 export const metadata = {
   title: 'CareAtlas — Healthcare without borders',
@@ -16,6 +18,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <AuthProvider>
+          <ReferralCapture />
           <Header />
           <main>{children}</main>
           <Footer />

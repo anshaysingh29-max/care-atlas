@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, Building2, ClipboardList, FileCheck2, HeartHandshake, History, LayoutDashboard, LogOut, MapPinned, ShieldCheck, Stethoscope, UserCog, UsersRound } from 'lucide-react';
+import { Activity, BadgeIndianRupee, Building2, ClipboardList, FileCheck2, Handshake, HeartHandshake, History, LayoutDashboard, LogOut, MapPinned, ReceiptText, ShieldCheck, Stethoscope, UserCog, UsersRound } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminRole, isCareAtlasStaffRole } from '@/lib/firebase/admin';
 
@@ -15,6 +15,7 @@ const baseItems = [
   ['/admin/doctors', 'Doctors', Stethoscope],
   ['/admin/treatment-plans', 'Treatment Plans', FileCheck2],
   ['/admin/coordinators', 'Coordinators', HeartHandshake],
+  ['/admin/referrals', 'Referrals', UsersRound],
   ['/admin/content', 'Content', MapPinned],
   ['/admin/analytics', 'Analytics', Activity]
 ];
@@ -24,7 +25,7 @@ export default function AdminShell({ children, title, subtitle, action }) {
   const router = useRouter();
   const { user, userProfile, loading, logout } = useAuth();
   const permitted = Boolean(user && userProfile && isCareAtlasStaffRole(userProfile.role));
-  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/audit', 'Audit Trail', History]] : baseItems;
+  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/partners', 'Partners', Handshake], ['/admin/commissions', 'Commissions', BadgeIndianRupee], ['/admin/payouts', 'Payouts', ReceiptText], ['/admin/audit', 'Audit Trail', History]] : baseItems;
 
   useEffect(() => {
     if (loading) return;

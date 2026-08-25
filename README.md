@@ -52,3 +52,7 @@ Firebase hospital accounts, assigned-case access, consent-aware document review,
 Phase 6F adds versioned patient consent, real case messaging, patient in-app notifications, an admin audit viewer, stricter Firestore rules, consent-gated Drive upload/download and optional Firebase App Check initialization. See `PHASE6F_SETUP.md`.
 
 CareAtlas is still an application MVP, not a regulatory certification. Before collecting real patient health data, complete legal/privacy review, data-retention policies, incident response, vendor agreements, access reviews and any healthcare/privacy obligations that apply to the countries in which you operate.
+
+
+## Phase 7A — CareAtlas Partner Network
+Referral-partner signup/approval, 60-day first-valid attribution, partner dashboards, commission ledger, admin approval and manual payout tracking are included. See `PHASE7A_SETUP.md`. Partners cannot access medical records.

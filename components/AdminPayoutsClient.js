@@ -1,0 +1,7 @@
+'use client';
+import { useEffect,useState } from 'react';
+import { Landmark, WalletCards } from 'lucide-react';
+import AdminShell from '@/components/AdminShell';
+import { getAdminCommissions,updateCommissionStatus } from '@/lib/firebase/affiliateAdmin';
+import { formatPartnerMoney } from '@/lib/firebase/partners';
+export default function AdminPayoutsClient(){const[rows,setRows]=useState([]);async function load(){const all=await getAdminCommissions();setRows(all.filter(r=>['approved','paid'].includes(r.status)))}useEffect(()=>{load().catch(()=>setRows([]))},[]);async function paid(id){await updateCommissionStatus({commissionId:id,status:'paid'});await load()}return <AdminShell title="Partner payouts" subtitle="Settle approved referral commissions and keep payment state visible to partners."><div className="phase7a-payout-note"><Landmark size={20}/><div><strong>Manual settlement in Phase 7A</strong><span>Pay through your approved finance process, then mark the commission paid. Automated payout rails come later.</span></div></div><section className="portal-card phase7a-payout-list">{rows.map(r=><article key={r.id}><WalletCards size={17}/><div><strong>{formatPartnerMoney(r.amount,r.currency)}</strong><span>{r.caseNumber} · {r.referralCode}</span></div><div><i>{r.status}</i>{r.status==='approved'?<button className="button button-sm" onClick={()=>paid(r.id)}>Mark paid</button>:<small>Settled</small>}</div></article>)}{!rows.length&&<p className="phase7a-empty">No approved partner payouts.</p>}</section></AdminShell>}
