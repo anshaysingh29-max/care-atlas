@@ -1,4 +1,13 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "caseMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "caseId", "order": "ASCENDING" },
+        { "fieldPath": "hospitalId", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

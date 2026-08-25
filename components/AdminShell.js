@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, Building2, ClipboardList, FileCheck2, HeartHandshake, LayoutDashboard, LogOut, MapPinned, ShieldCheck, Stethoscope, UserCog, UsersRound } from 'lucide-react';
+import { Activity, Building2, ClipboardList, FileCheck2, HeartHandshake, History, LayoutDashboard, LogOut, MapPinned, ShieldCheck, Stethoscope, UserCog, UsersRound } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { isCareAtlasStaffRole } from '@/lib/firebase/admin';
+import { isAdminRole, isCareAtlasStaffRole } from '@/lib/firebase/admin';
 
-const items = [
+const baseItems = [
   ['/admin', 'Overview', LayoutDashboard],
   ['/admin/cases', 'Cases', ClipboardList],
   ['/admin/patients', 'Patients', UsersRound],
@@ -24,6 +24,7 @@ export default function AdminShell({ children, title, subtitle, action }) {
   const router = useRouter();
   const { user, userProfile, loading, logout } = useAuth();
   const permitted = Boolean(user && userProfile && isCareAtlasStaffRole(userProfile.role));
+  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/audit', 'Audit Trail', History]] : baseItems;
 
   useEffect(() => {
     if (loading) return;
@@ -52,7 +53,7 @@ export default function AdminShell({ children, title, subtitle, action }) {
               return <Link key={href} href={href} className={active ? 'active' : ''}><Icon size={17}/><span>{label}</span></Link>;
             })}
           </nav>
-          <div className="admin-security phase6d-admin-identity"><UserCog size={18}/><div><strong>{userProfile.displayName || user.email}</strong><span>{userProfile.role} · Firebase RBAC active</span></div></div>
+          <div className="admin-security phase6d-admin-identity"><UserCog size={18}/><div><strong>{userProfile.displayName || user.email}</strong><span>{userProfile.role} · Firebase RBAC · immutable audit events</span></div></div>
           <button type="button" className="admin-signout admin-signout-button" onClick={signOut}><LogOut size={16}/> Sign out</button>
         </aside>
         <main className="admin-main">

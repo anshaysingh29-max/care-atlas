@@ -3,8 +3,10 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, FolderHeart, FileText, Files, MessageCircle, LogOut, ShieldCheck } from 'lucide-react';
+import { FileText, Files, FolderHeart, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, UserCheck } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import PatientNotificationBell from '@/components/PatientNotificationBell';
+import { USER_ROLES } from '@/lib/firebase/roles';
 
 const items = [
   ['/patient', 'Overview', LayoutDashboard],
@@ -12,6 +14,7 @@ const items = [
   ['/patient/treatment-plans', 'Treatment Plans', FileText],
   ['/patient/documents', 'Documents', Files],
   ['/patient/messages', 'Messages', MessageCircle],
+  ['/patient/consents', 'Consent & Privacy', UserCheck]
 ];
 
 function initials(name, email) {
@@ -24,11 +27,13 @@ function initials(name, email) {
 export default function PatientShell({ children, title, subtitle, caseNumber }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, patientProfile, loading, error, logout } = useAuth();
+  const { user, userProfile, patientProfile, loading, error, logout } = useAuth();
+  const permitted = Boolean(user && userProfile?.role === USER_ROLES.PATIENT && userProfile?.status !== 'disabled');
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/login');
-  }, [loading, user, router]);
+    if (loading) return;
+    if (!permitted) router.replace('/login');
+  }, [loading, permitted, router]);
 
   async function exitPortal(event) {
     event.preventDefault();
@@ -36,19 +41,17 @@ export default function PatientShell({ children, title, subtitle, caseNumber }) 
     router.replace('/');
   }
 
-  if (loading) {
+  if (loading || !permitted) {
     return (
       <section className="patient-app">
         <div className="container patient-shell">
           <main className="patient-main">
-            <section className="portal-card"><span className="eyebrow">PATIENT PORTAL</span><h2>Loading your secure CareAtlas session…</h2></section>
+            <section className="portal-card"><span className="eyebrow">PATIENT PORTAL</span><h2>Verifying your secure CareAtlas session…</h2></section>
           </main>
         </div>
       </section>
     );
   }
-
-  if (!user) return null;
 
   const displayName = patientProfile?.displayName || user.displayName || user.email?.split('@')[0] || 'Patient';
   const country = patientProfile?.country || 'Country not added';
@@ -66,13 +69,13 @@ export default function PatientShell({ children, title, subtitle, caseNumber }) 
               <Link key={href} href={href} className={pathname === href ? 'active' : ''}><Icon size={17}/><span>{label}</span></Link>
             ))}
           </nav>
-          <div className="patient-security"><ShieldCheck size={18}/><div><strong>Secure patient session</strong><span>Identity and case access are protected by Firebase Authentication and Firestore rules.</span></div></div>
+          <div className="patient-security"><ShieldCheck size={18}/><div><strong>Secure patient session</strong><span>Firebase Authentication, Firestore rules, consent records and optional App Check protect portal access.</span></div></div>
           <Link href="/" className="patient-signout" onClick={exitPortal}><LogOut size={16}/> Sign out</Link>
         </aside>
         <main className="patient-main">
           <header className="patient-page-header">
             <div><span className="eyebrow">PATIENT PORTAL</span><h1>{title}</h1><p>{subtitle}</p></div>
-            <div className="case-chip">{caseNumber || 'SECURE ACCOUNT'}</div>
+            <div className="phase6f-patient-header-actions"><PatientNotificationBell/><div className="case-chip">{caseNumber || 'SECURE ACCOUNT'}</div></div>
           </header>
           {error && <div className="prototype-banner"><ShieldCheck size={17}/><div><strong>Account notice</strong><span>{error}</span></div></div>}
           {children}

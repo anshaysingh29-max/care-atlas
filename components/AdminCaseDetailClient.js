@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Building2, FileText, Globe2, HeartHandshake, LoaderCircle, Mail, Phone, Save, ShieldCheck, Stethoscope } from 'lucide-react';
 import AdminShell from '@/components/AdminShell';
+import AdminCaseMessagingPanel from '@/components/AdminCaseMessagingPanel';
 import { useAuth } from '@/components/AuthProvider';
 import { hospitals } from '@/lib/data';
 import {
@@ -13,6 +14,7 @@ import {
   formatAdminTimestamp,
   getAdminCase,
   getAdminCaseDocuments,
+  getAdminCaseConsentState,
   stageLabel,
   updateAdminCaseOperations
 } from '@/lib/firebase/admin';
@@ -22,6 +24,7 @@ export default function AdminCaseDetailClient() {
   const [caseId, setCaseId] = useState('');
   const [record, setRecord] = useState(null);
   const [documents, setDocuments] = useState([]);
+  const [consentState, setConsentState] = useState(null);
   const [form, setForm] = useState({ currentStage: 'case_submitted', status: 'submitted', coordinatorId: '', assignedHospitalIds: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,12 +37,14 @@ export default function AdminCaseDetailClient() {
     setLoading(true);
     setError('');
     try {
-      const [caseRecord, docs] = await Promise.all([
+      const [caseRecord, docs, consent] = await Promise.all([
         getAdminCase(targetId),
-        getAdminCaseDocuments(targetId)
+        getAdminCaseDocuments(targetId),
+        getAdminCaseConsentState(targetId)
       ]);
       setRecord(caseRecord);
       setDocuments(docs);
+      setConsentState(consent);
       setForm({
         currentStage: caseRecord.currentStage || 'case_submitted',
         status: caseRecord.status || 'submitted',
@@ -117,6 +122,7 @@ export default function AdminCaseDetailClient() {
                 <span><Globe2 size={15}/><small>Patient from</small><strong>{record.patientCountry || 'Not set'}</strong></span>
                 <span><HeartHandshake size={15}/><small>Companions</small><strong>{record.companions || 'Not set'}</strong></span>
                 <span><FileText size={15}/><small>Documents</small><strong>{documents.length}</strong></span>
+                <span><ShieldCheck size={15}/><small>Hospital sharing</small><strong>{consentState?.hospitalSharing ? 'Allowed' : 'Not allowed'}</strong></span>
                 <span><ShieldCheck size={15}/><small>Updated</small><strong>{formatAdminTimestamp(record.updatedAt || record.createdAt)}</strong></span>
               </div>
             </section>
@@ -125,13 +131,15 @@ export default function AdminCaseDetailClient() {
               <div className="portal-card-heading"><div><span className="eyebrow">MEDICAL REQUEST</span><h2>Patient-submitted context.</h2></div><Stethoscope size={22}/></div>
               <div className="case-narrative"><strong>Diagnosis / request</strong><p>{record.diagnosis || 'No diagnosis text was supplied.'}</p><strong>Urgency</strong><p>{record.urgency || 'Not set'}</p><strong>Uploaded documents</strong><div className="admin-doc-list">{documents.length ? documents.map(item => <span key={item.id}><FileText size={14}/> {item.name} <i>{item.category || 'Medical report'}</i></span>) : <span><FileText size={14}/> No documents uploaded yet.</span>}</div></div>
             </section>
+
+            <AdminCaseMessagingPanel caseId={caseId}/>
           </div>
 
           <aside className="admin-case-column">
             <section className="portal-card">
               <span className="eyebrow">HOSPITAL MATCHING</span>
               <h2>{form.assignedHospitalIds.length} provider{form.assignedHospitalIds.length === 1 ? '' : 's'} assigned.</h2>
-              <p className="admin-small-note">These are the current demo catalogue provider IDs. Phase 6E turns hospital accounts and access into real Firestore-backed partner operations.</p>
+              <p className="admin-small-note">These are the current demo catalogue provider IDs. Hospital access is live and document access is additionally controlled by the patient’s recorded sharing consent.</p>
               <div className="phase6d-hospital-picker">
                 {hospitals.map(hospital => <label key={hospital.slug} className={form.assignedHospitalIds.includes(hospital.slug) ? 'selected' : ''}><input type="checkbox" checked={form.assignedHospitalIds.includes(hospital.slug)} onChange={() => toggleHospital(hospital.slug)}/><Building2 size={16}/><span><strong>{hospital.name}</strong><small>{hospital.city}, {hospital.country}</small></span></label>)}
               </div>

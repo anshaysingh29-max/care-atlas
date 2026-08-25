@@ -63,6 +63,8 @@ function uploadDocument_(payload) {
     throw new Error('This case does not belong to the signed-in patient.');
   }
 
+  requireMedicalDataConsent_(payload.caseId, payload.idToken);
+
   const rawBytes = Utilities.base64Decode(payload.base64 || '');
   if (!rawBytes.length) throw new Error('The selected file is empty.');
   if (rawBytes.length > MAX_FILE_BYTES) throw new Error('Files must be 8 MB or smaller for the CareAtlas MVP.');
@@ -154,6 +156,7 @@ function authorizeDocumentRead_(metadata, user, idToken) {
   const role = profile.role || '';
 
   if (['careatlas_coordinator', 'careatlas_operations', 'careatlas_admin', 'super_admin'].indexOf(role) !== -1) {
+    requireMedicalDataConsent_(metadata.caseId, idToken);
     return;
   }
 
@@ -161,10 +164,38 @@ function authorizeDocumentRead_(metadata, user, idToken) {
     const caseDoc = getFirestoreDocument_('cases/' + requireSafeId_(metadata.caseId, 'caseId'), idToken);
     const caseData = firestoreFieldsToObject_(caseDoc.fields || {});
     const assigned = Array.isArray(caseData.assignedHospitalIds) ? caseData.assignedHospitalIds : [];
-    if (assigned.indexOf(profile.hospitalId) !== -1) return;
+    if (assigned.indexOf(profile.hospitalId) !== -1) {
+      requireHospitalSharingConsent_(metadata.caseId, idToken);
+      return;
+    }
   }
 
   throw new Error('You do not have access to this medical document.');
+}
+
+function getCaseConsentState_(caseId, idToken) {
+  try {
+    const consentDoc = getFirestoreDocument_('caseConsentStates/' + requireSafeId_(caseId, 'caseId'), idToken);
+    return firestoreFieldsToObject_(consentDoc.fields || {});
+  } catch (error) {
+    throw new Error('The patient has not completed the required CareAtlas consent for this case.');
+  }
+}
+
+function requireMedicalDataConsent_(caseId, idToken) {
+  const consent = getCaseConsentState_(caseId, idToken);
+  if (consent.medicalDataProcessing !== true) {
+    throw new Error('Medical data processing consent is required before CareAtlas can store or share this document.');
+  }
+  return consent;
+}
+
+function requireHospitalSharingConsent_(caseId, idToken) {
+  const consent = requireMedicalDataConsent_(caseId, idToken);
+  if (consent.hospitalSharing !== true) {
+    throw new Error('The patient has not authorized hospital document sharing for this case.');
+  }
+  return consent;
 }
 
 function verifyDriveCapability_(file, metadata) {

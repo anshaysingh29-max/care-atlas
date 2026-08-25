@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CalendarClock, Download, FileCheck2, FileText, Globe2, LoaderCircle, Mail, Phone, ShieldCheck, Stethoscope } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Download, FileCheck2, FileText, Globe2, LoaderCircle, ShieldCheck, Stethoscope } from 'lucide-react';
 import HospitalShell from '@/components/HospitalShell';
 import { useAuth } from '@/components/AuthProvider';
 import { base64ToBlob, callDriveGateway, isDriveGatewayConfigured } from '@/lib/drive/bridge';
@@ -10,6 +10,7 @@ import {
   formatHospitalTimestamp,
   getHospitalCase,
   getHospitalCaseDocuments,
+  getHospitalCaseConsentState,
   getHospitalConsultations,
   getHospitalTreatmentPlans
 } from '@/lib/firebase/hospital';
@@ -20,6 +21,7 @@ export default function HospitalCaseDetailClient() {
   const [record, setRecord] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [plans, setPlans] = useState([]);
+  const [consentState, setConsentState] = useState(null);
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -39,12 +41,14 @@ export default function HospitalCaseDetailClient() {
     Promise.all([
       getHospitalCase(target, userProfile.hospitalId),
       getHospitalCaseDocuments(target, userProfile.hospitalId),
+      getHospitalCaseConsentState(target, userProfile.hospitalId),
       getHospitalTreatmentPlans(userProfile.hospitalId),
       getHospitalConsultations(userProfile.hospitalId)
-    ]).then(([caseRecord, docs, allPlans, allConsultations]) => {
+    ]).then(([caseRecord, docs, consent, allPlans, allConsultations]) => {
       if (!active) return;
       setRecord(caseRecord);
       setDocuments(docs);
+      setConsentState(consent);
       setPlans(allPlans.filter(item => item.caseId === target));
       setConsultations(allConsultations.filter(item => item.caseId === target));
     }).catch(loadError => {
@@ -98,6 +102,7 @@ export default function HospitalCaseDetailClient() {
 
         <section className="portal-card">
           <div className="portal-card-heading"><div><span className="eyebrow">SHARED DOCUMENTS</span><h2>Records available to your hospital.</h2></div><span className={`gateway-pill ${isDriveGatewayConfigured() ? 'ready' : 'pending'}`}>{isDriveGatewayConfigured() ? 'Drive gateway ready' : 'Gateway missing'}</span></div>
+          {!(consentState?.medicalDataProcessing && consentState?.hospitalSharing) && <div className="permission-banner phase6f-consent-lock"><ShieldCheck size={17}/><div><strong>Documents locked by patient consent</strong><span>The patient must enable both medical-data processing and hospital sharing before this hospital can access uploaded records.</span></div></div>}
           <div className="phase6e-shared-docs">{documents.length ? documents.map(document => <article key={document.id}><FileText size={18}/><div><strong>{document.name}</strong><span>{document.category || 'Medical report'} · {document.mimeType}</span></div><button type="button" onClick={() => downloadDocument(document)} disabled={Boolean(busy)} aria-label={`Download ${document.name}`}>{busy === `download:${document.id}` ? <LoaderCircle className="spin" size={15}/> : <Download size={15}/>}</button></article>) : <div className="empty-documents"><FileText size={27}/><h3>No shared documents yet.</h3><p>The patient has not uploaded records for this case.</p></div>}</div>
         </section>
       </div>
@@ -107,7 +112,7 @@ export default function HospitalCaseDetailClient() {
           <span className="eyebrow">HOSPITAL RESPONSE</span><h2>{plans.length ? `${plans.length} plan${plans.length === 1 ? '' : 's'} submitted` : 'Treatment plan required'}</h2><p>Submit a structured clinical and commercial response for CareAtlas and the patient to review.</p><Link href={`/hospital/treatment-plans/new?case=${encodeURIComponent(caseId)}`} className="button admin-full"><FileCheck2 size={16}/> Create treatment plan</Link>
         </section>
         <section className="portal-card phase6e-response-card"><span className="eyebrow">CONSULTATION</span><h2>{consultations.length ? `${consultations.length} consultation${consultations.length === 1 ? '' : 's'}` : 'No consultation proposed'}</h2><p>Propose a doctor consultation after reviewing the shared records.</p><Link href={`/hospital/consultations?case=${encodeURIComponent(caseId)}`} className="button button-secondary admin-full"><CalendarClock size={16}/> Manage consultation</Link></section>
-        <section className="portal-card"><span className="eyebrow">PATIENT CONTACT</span><div className="contact-mini"><span><Mail size={15}/> {record.patientEmail || 'Email not set'}</span><span><Phone size={15}/> {record.patientPhone || 'Phone not set'}</span></div><p className="admin-small-note">Access is limited to cases assigned to your hospital. Use test/non-sensitive patient records until production compliance hardening is complete.</p></section>
+        <section className="portal-card"><span className="eyebrow">PATIENT COMMUNICATION</span><h2>CareAtlas-mediated contact.</h2><p className="admin-small-note">Direct patient email and phone are intentionally not displayed in the hospital UI. Use the consent-aware CareAtlas case message thread instead.</p><Link href="/hospital/messages" className="button button-secondary admin-full">Open patient messages</Link></section>
       </aside>
     </div>}
   </HospitalShell>;

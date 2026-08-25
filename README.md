@@ -41,3 +41,14 @@ Until the Firebase-backed patient flow and controlled Drive document layer are c
 
 ## Phase 6C — Google Drive medical documents
 CareAtlas now includes a zero/near-zero-cost private Google Drive document gateway for patient case files. See `PHASE6C_SETUP.md` before enabling real uploads. Firebase Storage is not used.
+
+## Phase 6D — Real CareAtlas operations
+Firebase staff RBAC, live Firestore case operations, coordinator/hospital assignment, patient notifications and audit events.
+
+## Phase 6E — Real hospital portal
+Firebase hospital accounts, assigned-case access, consent-aware document review, treatment-plan submission and consultation workflows.
+
+## Phase 6F — Consent, messaging, notifications and hardening
+Phase 6F adds versioned patient consent, real case messaging, patient in-app notifications, an admin audit viewer, stricter Firestore rules, consent-gated Drive upload/download and optional Firebase App Check initialization. See `PHASE6F_SETUP.md`.
+
+CareAtlas is still an application MVP, not a regulatory certification. Before collecting real patient health data, complete legal/privacy review, data-retention policies, incident response, vendor agreements, access reviews and any healthcare/privacy obligations that apply to the countries in which you operate.

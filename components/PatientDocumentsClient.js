@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   Download,
   FileCheck2,
@@ -15,6 +16,7 @@ import {
 import PatientShell from '@/components/PatientShell';
 import { useAuth } from '@/components/AuthProvider';
 import { getPatientCases } from '@/lib/firebase/cases';
+import { getPatientCaseConsentState, hasMedicalDataConsent } from '@/lib/firebase/consents';
 import {
   createCaseDocumentMetadata,
   formatDocumentDate,
@@ -52,6 +54,7 @@ export default function PatientDocumentsClient() {
   const [documents, setDocuments] = useState([]);
   const [selectedCaseId, setSelectedCaseId] = useState('');
   const [category, setCategory] = useState('Medical report');
+  const [consentState, setConsentState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -91,11 +94,27 @@ export default function PatientDocumentsClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  useEffect(() => {
+    if (!user || !selectedCase?.id) {
+      setConsentState(null);
+      return;
+    }
+    let active = true;
+    getPatientCaseConsentState(selectedCase.id, user.uid)
+      .then(state => { if (active) setConsentState(state); })
+      .catch(() => { if (active) setConsentState(null); });
+    return () => { active = false; };
+  }, [user, selectedCase?.id]);
+
   async function uploadFile(file) {
     if (!user || !selectedCase || !file) return;
     setError('');
     setNotice('');
 
+    if (!hasMedicalDataConsent(consentState)) {
+      setError('Medical document upload is locked until you accept the medical data processing consent for this case.');
+      return;
+    }
     if (!isDriveGatewayConfigured()) {
       setError('Google Drive uploads are not configured yet. Add NEXT_PUBLIC_DRIVE_GATEWAY_URL after deploying the Apps Script gateway.');
       return;
@@ -212,6 +231,7 @@ export default function PatientDocumentsClient() {
 
       {error && <div className="document-alert error"><ShieldCheck size={18}/><span>{error}</span></div>}
       {notice && <div className="document-alert success"><FileCheck2 size={18}/><span>{notice}</span></div>}
+      {selectedCase && !hasMedicalDataConsent(consentState) && <div className="permission-banner phase6f-document-consent"><ShieldCheck size={18}/><div><strong>Medical-data consent required</strong><span>CareAtlas will not accept new medical uploads until you explicitly authorize medical data processing for this case.</span></div><Link href="/patient/consents" className="text-button">Manage consent</Link></div>}
 
       <section className="portal-card drive-upload-card">
         <div className="portal-card-heading">
@@ -239,10 +259,10 @@ export default function PatientDocumentsClient() {
                 <option>Other</option>
               </select>
             </label>
-            <label className={`real-upload-zone ${busy === 'upload' ? 'disabled' : ''}`}>
+            <label className={`real-upload-zone ${busy === 'upload' || !hasMedicalDataConsent(consentState) ? 'disabled' : ''}`}>
               {busy === 'upload' ? <LoaderCircle className="spin" size={27}/> : <UploadCloud size={27}/>} 
               <div><strong>{busy === 'upload' ? 'Encrypting the session and uploading…' : 'Choose PDF, JPG or PNG'}</strong><span>Maximum 8 MB per file for this MVP gateway.</span></div>
-              <input ref={inputRef} disabled={busy === 'upload'} type="file" accept=".pdf,image/jpeg,image/png" onChange={event => uploadFile(event.target.files?.[0])}/>
+              <input ref={inputRef} disabled={busy === 'upload' || !hasMedicalDataConsent(consentState)} type="file" accept=".pdf,image/jpeg,image/png" onChange={event => uploadFile(event.target.files?.[0])}/>
             </label>
           </div>
         ) : (
@@ -287,7 +307,7 @@ export default function PatientDocumentsClient() {
         <div><FileCheck2/><strong>Patient-case folders</strong><span>Each case receives its own Medical Reports folder under the private CareAtlas Patients Drive root.</span></div>
       </div>
 
-      <p className="phase6c-safety-note">Phase 6C is a low-cost MVP document gateway. Use test or non-sensitive records until the later audit, consent, hospital-access and production-hardening phases are complete.</p>
+      <p className="phase6c-safety-note">Phase 6F adds versioned consent, role-based access and audit controls around the low-cost Drive gateway. Real-world healthcare use still requires your legal, privacy, security and regulatory review.</p>
     </PatientShell>
   );
 }

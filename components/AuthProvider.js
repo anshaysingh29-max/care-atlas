@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { doc, getDoc } from 'firebase/firestore';
 import { getFirebaseDb, isFirebaseConfigured, missingFirebaseConfig } from '@/lib/firebase/client';
 import { signOutCurrentUser, subscribeToAuthState } from '@/lib/firebase/auth';
+import { initializeCareAtlasAppCheck } from '@/lib/firebase/appCheck';
 
 const AuthContext = createContext(null);
 
@@ -39,6 +40,12 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   useEffect(() => {
+    try {
+      initializeCareAtlasAppCheck();
+    } catch (appCheckError) {
+      console.error('Unable to initialize CareAtlas App Check.', appCheckError);
+    }
+
     if (!isFirebaseConfigured) {
       setLoading(false);
       setError(`Firebase configuration is incomplete: ${missingFirebaseConfig.join(', ')}`);

@@ -59,6 +59,30 @@ service cloud.firestore {
         && hospitalId() in caseData.get('assignedHospitalIds', []);
     }
 
+    function consentState(caseId) {
+      return get(/databases/$(database)/documents/caseConsentStates/$(caseId));
+    }
+
+    function hasConsentState(caseId) {
+      return exists(/databases/$(database)/documents/caseConsentStates/$(caseId));
+    }
+
+    function medicalDataConsentGranted(caseId) {
+      return hasConsentState(caseId)
+        && consentState(caseId).data.medicalDataProcessing == true;
+    }
+
+    function hospitalDocumentConsentGranted(caseId) {
+      return hasConsentState(caseId)
+        && consentState(caseId).data.medicalDataProcessing == true
+        && consentState(caseId).data.hospitalSharing == true;
+    }
+
+    function messagingConsentGranted(caseId) {
+      return hasConsentState(caseId)
+        && consentState(caseId).data.careCoordinationMessaging == true;
+    }
+
     match /users/{userId} {
       allow create: if signedIn()
         && request.auth.uid == userId
@@ -72,8 +96,8 @@ service cloud.firestore {
 
       allow update: if signedIn()
         && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'userId','email','role','hospitalId','status','createdAt'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'country', 'updatedAt'
         ]);
 
       allow update: if isAdmin();
@@ -92,8 +116,9 @@ service cloud.firestore {
 
       allow update: if signedIn()
         && request.auth.uid == patientId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'userId','email','createdAt'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'country', 'age', 'gender', 'phone',
+          'preferredLanguage', 'updatedAt'
         ]);
 
       allow update: if isCareAtlasStaff();
@@ -106,7 +131,11 @@ service cloud.firestore {
         && request.resource.data.status == 'submitted'
         && request.resource.data.currentStage == 'case_submitted'
         && request.resource.data.assignedHospitalIds.size() == 0
-        && request.resource.data.coordinatorId == null;
+        && request.resource.data.coordinatorId == null
+        && request.resource.data.documentCount == 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.submittedAt == request.time;
 
       allow read: if signedIn() && (
         ownsCase(resource.data) ||
@@ -116,13 +145,87 @@ service cloud.firestore {
 
       allow update: if signedIn()
         && ownsCase(resource.data)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'patientId','caseNumber','assignedHospitalIds','coordinatorId','coordinatorName',
-          'status','currentStage','createdAt','submittedAt'
-        ]);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'documentCount', 'updatedAt'
+        ])
+        && request.resource.data.documentCount is int
+        && request.resource.data.documentCount >= 0
+        && request.resource.data.updatedAt == request.time;
 
       allow update: if isCareAtlasStaff();
       allow delete: if isAdmin();
+    }
+
+    match /caseConsentStates/{caseId} {
+      function requestedCase() {
+        return get(/databases/$(database)/documents/cases/$(caseId));
+      }
+
+      allow create: if signedIn()
+        && request.resource.data.caseId == caseId
+        && request.resource.data.patientId == request.auth.uid
+        && requestedCase().data.patientId == request.auth.uid
+        && request.resource.data.version == '2026-08-24-v1'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.medicalDataProcessing is bool
+        && request.resource.data.hospitalSharing is bool
+        && request.resource.data.careCoordinationMessaging is bool;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff() ||
+        hospitalCanAccessCase(requestedCase().data)
+      );
+
+      allow update: if signedIn()
+        && resource.data.patientId == request.auth.uid
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.caseId == resource.data.caseId
+        && requestedCase().data.patientId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'version', 'medicalDataProcessing', 'hospitalSharing',
+          'careCoordinationMessaging', 'updatedAt'
+        ])
+        && request.resource.data.version == '2026-08-24-v1'
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.medicalDataProcessing is bool
+        && request.resource.data.hospitalSharing is bool
+        && request.resource.data.careCoordinationMessaging is bool;
+
+      allow delete: if false;
+    }
+
+    match /consents/{consentId} {
+      function requestedConsentCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      function linkedConsentCase() {
+        return get(/databases/$(database)/documents/cases/$(resource.data.caseId));
+      }
+
+      allow create: if signedIn()
+        && request.resource.data.patientId == request.auth.uid
+        && requestedConsentCase().data.patientId == request.auth.uid
+        && request.resource.data.consentType in [
+          'medical_data_processing',
+          'hospital_sharing',
+          'care_coordination_messaging'
+        ]
+        && request.resource.data.decision in ['accepted', 'declined', 'withdrawn']
+        && request.resource.data.version == '2026-08-24-v1'
+        && request.resource.data.consentText is string
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.createdAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff() ||
+        hospitalCanAccessCase(linkedConsentCase().data)
+      );
+
+      allow update, delete: if false;
     }
 
     match /caseDocuments/{documentId} {
@@ -137,12 +240,18 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.patientId == request.auth.uid
         && request.resource.data.storageProvider == 'google_drive'
-        && requestedCase().data.patientId == request.auth.uid;
+        && requestedCase().data.patientId == request.auth.uid
+        && medicalDataConsentGranted(request.resource.data.caseId)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
 
       allow read: if signedIn() && (
         resource.data.patientId == request.auth.uid ||
-        isCareAtlasStaff() ||
-        hospitalCanAccessCase(linkedCase().data)
+        (isCareAtlasStaff() && medicalDataConsentGranted(resource.data.caseId)) ||
+        (
+          hospitalCanAccessCase(linkedCase().data) &&
+          hospitalDocumentConsentGranted(resource.data.caseId)
+        )
       );
 
       allow update: if false;
@@ -236,14 +345,114 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /consents/{consentId} {
+    match /caseMessages/{messageId} {
+      function requestedMessageCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      function linkedMessageCase() {
+        return get(/databases/$(database)/documents/cases/$(resource.data.caseId));
+      }
+
+      function validMessageBody() {
+        return request.resource.data.body is string
+          && request.resource.data.body.size() > 0
+          && request.resource.data.body.size() <= 4000;
+      }
+
       allow create: if signedIn()
-        && request.resource.data.patientId == request.auth.uid;
+        && currentUser().data.role == 'patient'
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.senderRole == 'patient'
+        && request.resource.data.patientId == request.auth.uid
+        && requestedMessageCase().data.patientId == request.auth.uid
+        && messagingConsentGranted(request.resource.data.caseId)
+        && validMessageBody()
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.createdAt == request.time
+        && (
+          (
+            request.resource.data.threadType == 'careatlas' &&
+            request.resource.data.hospitalId == null
+          ) ||
+          (
+            request.resource.data.threadType == 'hospital' &&
+            request.resource.data.hospitalId is string &&
+            request.resource.data.hospitalId in requestedMessageCase().data.get('assignedHospitalIds', [])
+          )
+        );
+
+      allow create: if isCareAtlasStaff()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.senderRole == currentUser().data.role
+        && request.resource.data.patientId == requestedMessageCase().data.patientId
+        && request.resource.data.threadType == 'careatlas'
+        && request.resource.data.hospitalId == null
+        && messagingConsentGranted(request.resource.data.caseId)
+        && validMessageBody()
+        && request.resource.data.source == 'admin_web'
+        && request.resource.data.createdAt == request.time;
+
+      allow create: if isHospitalUser()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.senderRole == currentUser().data.role
+        && request.resource.data.hospitalId == hospitalId()
+        && request.resource.data.patientId == requestedMessageCase().data.patientId
+        && request.resource.data.threadType == 'hospital'
+        && hospitalCanAccessCase(requestedMessageCase().data)
+        && messagingConsentGranted(request.resource.data.caseId)
+        && validMessageBody()
+        && request.resource.data.source == 'hospital_web'
+        && request.resource.data.createdAt == request.time;
+
       allow read: if signedIn() && (
         resource.data.patientId == request.auth.uid ||
-        isCareAtlasStaff()
+        isCareAtlasStaff() ||
+        (
+          isHospitalUser() &&
+          resource.data.hospitalId == hospitalId() &&
+          hospitalCanAccessCase(linkedMessageCase().data)
+        )
       );
+
       allow update, delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      function requestedNotificationCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      allow create: if isCareAtlasStaff()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.recipientId == requestedNotificationCase().data.patientId
+        && request.resource.data.patientId == requestedNotificationCase().data.patientId
+        && request.resource.data.source == 'admin_web'
+        && request.resource.data.readAt == null
+        && request.resource.data.createdAt == request.time;
+
+      allow create: if isHospitalUser()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdByRole == currentUser().data.role
+        && request.resource.data.hospitalId == hospitalId()
+        && request.resource.data.recipientId == requestedNotificationCase().data.patientId
+        && request.resource.data.patientId == requestedNotificationCase().data.patientId
+        && hospitalCanAccessCase(requestedNotificationCase().data)
+        && request.resource.data.source == 'hospital_web'
+        && request.resource.data.readAt == null
+        && request.resource.data.createdAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.recipientId == request.auth.uid ||
+        isAdmin()
+      );
+
+      allow update: if signedIn()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+        && request.resource.data.readAt == request.time;
+
+      allow delete: if false;
     }
 
     match /auditLogs/{logId} {
@@ -251,14 +460,18 @@ service cloud.firestore {
 
       allow create: if isCareAtlasStaff()
         && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.actorRole == currentUser().data.role
         && request.resource.data.action is string
-        && request.resource.data.source == 'admin_web';
+        && request.resource.data.source == 'admin_web'
+        && request.resource.data.createdAt == request.time;
 
       allow create: if isHospitalUser()
         && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.actorRole == currentUser().data.role
         && request.resource.data.hospitalId == hospitalId()
         && request.resource.data.action is string
-        && request.resource.data.source == 'hospital_web';
+        && request.resource.data.source == 'hospital_web'
+        && request.resource.data.createdAt == request.time;
 
       allow update, delete: if false;
     }

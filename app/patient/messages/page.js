@@ -1,7 +1,3 @@
-'use client';
-import { useState } from 'react';
-import { Send, ShieldCheck } from 'lucide-react';
-import PatientShell from '@/components/PatientShell';
-export default function MessagesPage(){const [text,setText]=useState('');const [msgs,setMsgs]=useState([{from:'coordinator',body:'Hi James, I’ve reviewed your case and shared it with three orthopedic teams. I’ll update you as soon as additional treatment plans arrive.',time:'12:14 PM'},{from:'patient',body:'Thank you. I would prefer September if possible, and I’ll be travelling with my wife.',time:'12:21 PM'}]);function send(e){e.preventDefault();if(!text.trim())return;setMsgs(m=>[...m,{from:'patient',body:text.trim(),time:'Now'}]);setText('')}return <PatientShell title="Messages" subtitle="Keep your CareAtlas coordination in one place.">
-  <div className="message-layout"><aside className="conversation-list"><span className="eyebrow">CONVERSATIONS</span><button className="conversation active"><div className="coordinator-avatar small">SA</div><div><strong>Sarah Ahmed</strong><span>CareAtlas Coordinator</span><small>Active now</small></div></button></aside><section className="chat-panel"><header><div className="coordinator-avatar small">SA</div><div><strong>Sarah Ahmed</strong><span>International Patient Coordinator</span></div><div className="secure-chat"><ShieldCheck size={15}/> Prototype chat</div></header><div className="chat-messages">{msgs.map((m,i)=><div key={i} className={`chat-bubble ${m.from}`}><p>{m.body}</p><small>{m.time}</small></div>)}</div><form className="chat-composer" onSubmit={send}><input value={text} onChange={e=>setText(e.target.value)} placeholder="Write a demo message…"/><button className="button" type="submit"><Send size={16}/> Send</button></form><p className="chat-disclaimer">Messages in this static prototype are not transmitted and disappear when the page reloads.</p></section></div>
-</PatientShell>}
+import PatientMessagesClient from '@/components/PatientMessagesClient';
+export const metadata = { title: 'Messages — CareAtlas Patient Portal' };
+export default function PatientMessagesPage() { return <PatientMessagesClient/>; }

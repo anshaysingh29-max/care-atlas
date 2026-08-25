@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
-import { Building2, CalendarClock, FilePlus2, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Stethoscope } from 'lucide-react';
+import { Building2, CalendarClock, FilePlus2, FolderKanban, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, Stethoscope } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { getHospitalCatalogueProfile, isHospitalUserRole } from '@/lib/firebase/hospital';
 
@@ -12,6 +12,7 @@ const items = [
   ['/hospital/cases', 'Patient Cases', FolderKanban],
   ['/hospital/treatment-plans', 'Treatment Plans', FilePlus2],
   ['/hospital/consultations', 'Consultations', CalendarClock],
+  ['/hospital/messages', 'Messages', MessageCircle],
   ['/hospital/profile', 'Hospital Profile', Building2]
 ];
 
@@ -53,7 +54,7 @@ export default function HospitalShell({ children, title, subtitle, action }) {
               return <Link key={href} href={href} className={active ? 'active' : ''}><Icon size={17}/><span>{label}</span></Link>;
             })}
           </nav>
-          <div className="hospital-security phase6e-hospital-identity"><ShieldCheck size={18}/><div><strong>{userProfile.displayName || user.email}</strong><span>{userProfile.role} · assigned-case access only</span></div></div>
+          <div className="hospital-security phase6e-hospital-identity"><ShieldCheck size={18}/><div><strong>{userProfile.displayName || user.email}</strong><span>{userProfile.role} · assigned-case access · consent-aware documents</span></div></div>
           <button type="button" className="hospital-signout phase6e-signout-button" onClick={signOut}><LogOut size={16}/> Sign out</button>
         </aside>
         <main className="hospital-main">
