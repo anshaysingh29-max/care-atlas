@@ -1,0 +1,6 @@
+'use client';
+import { useEffect,useState } from 'react';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { getMarketplaceSpecialties,getPublishedHospitals } from '@/lib/firebase/marketplace';
+export default function HomeSpecialtiesClient(){const[s,setS]=useState([]);const[h,setH]=useState([]);useEffect(()=>{Promise.all([getMarketplaceSpecialties(),getPublishedHospitals()]).then(([a,b])=>{setS(a);setH(b);});},[]);return <section className="section phase7g-home-specialties"><div className="container"><div className="split-heading"><div><span className="eyebrow">EXPLORE BY SPECIALTY</span><h2>Find the right area of care.</h2><p>Approved hospital capabilities automatically expand the CareAtlas specialty marketplace.</p></div><Link className="button button-ghost" href="/specialties">All specialties <ArrowRight size={17}/></Link></div><div className="phase7g-home-specialty-grid">{s.filter(x=>x.featured).slice(0,8).map(x=>{const count=h.filter(v=>(v.specialtyIds||[]).includes(x.id)).length;return <Link href={`/specialties/view?id=${x.id}`} key={x.id}><span>{x.icon||'⚕️'}</span><div><strong>{x.name}</strong><small>{count?`${count} live partner${count===1?'':'s'}`:'Explore options'}</small></div><ArrowRight size={15}/></Link>})}</div></div></section>}

@@ -3,13 +3,14 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { BadgeIndianRupee, BedDouble, FileText, Files, FolderHeart, LayoutDashboard, LogOut, MessageCircle, Plane, ShieldCheck, Star, UserCheck } from 'lucide-react';
+import { BadgeIndianRupee, BedDouble, FileText, Files, FolderHeart, HeartPulse, LayoutDashboard, LogOut, MessageCircle, Plane, ShieldCheck, Star, UserCheck } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import PatientNotificationBell from '@/components/PatientNotificationBell';
 import { USER_ROLES } from '@/lib/firebase/roles';
 
 const items = [
   ['/patient', 'Overview', LayoutDashboard],
+  ['/patient/discover', 'Discover Care', HeartPulse],
   ['/patient/cases', 'My Cases', FolderHeart],
   ['/patient/treatment-plans', 'Treatment Plans', FileText],
   ['/patient/documents', 'Documents', Files],

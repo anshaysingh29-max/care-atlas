@@ -9,6 +9,7 @@ export default function Header() {
         <Logo />
         <nav className="desktop-nav" aria-label="Primary navigation">
           <Link href="/treatments">Treatments</Link>
+          <Link href="/specialties">Specialties</Link>
           <Link href="/destinations">Destinations</Link>
           <Link href="/hospitals">Hospitals</Link>
           <Link href="/compare"><GitCompareArrows size={14}/> Compare</Link>

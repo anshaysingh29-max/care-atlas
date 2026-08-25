@@ -4,6 +4,7 @@ import SearchPlanner from '@/components/SearchPlanner';
 import SectionTitle from '@/components/SectionTitle';
 import { TreatmentCard, DestinationCard, HospitalCard } from '@/components/Cards';
 import CTA from '@/components/CTA';
+import HomeSpecialtiesClient from '@/components/HomeSpecialtiesClient';
 import { treatments, destinations, hospitals } from '@/lib/data';
 
 export default function HomePage() {
@@ -57,6 +58,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <HomeSpecialtiesClient />
+
       <section className="section section-soft">
         <div className="container">
           <SectionTitle eyebrow="SELECTED DESTINATIONS" title="Care worth travelling for." text="CareAtlas begins with a focused network of destinations known for international patient services." />
@@ -99,7 +102,7 @@ export default function HomePage() {
             <h2>Meet international patients with clearer cases.</h2>
             <p>CareAtlas is being designed to send hospitals structured patient enquiries, relevant documents and treatment requests — not unqualified lead spreadsheets.</p>
           </div>
-          <a className="button" href="mailto:partners@careatlas.example?subject=CareAtlas%20Hospital%20Partnership">Become a founding hospital <ArrowRight size={17}/></a>
+          <Link className="button" href="/hospital-register">Register your hospital <ArrowRight size={17}/></Link>
         </div>
       </section>
 

@@ -73,6 +73,12 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/hotels/$(stayHotelId)).data.status == 'approved';
     }
 
+    function isHospitalApplicant() {
+      return hasUserProfile()
+        && currentUser().data.role == 'hospital_applicant'
+        && currentUser().data.status != 'disabled';
+    }
+
     function isHospitalUser() {
       return hasUserProfile() && currentUser().data.role in [
         'hospital_admin',
@@ -130,10 +136,10 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'active'
-        && request.resource.data.role in ['patient', 'partner', 'hotel_partner']
+        && request.resource.data.role in ['patient', 'partner', 'hotel_partner', 'hospital_applicant']
         && (
-          request.resource.data.role != 'hotel_partner' ||
-          request.resource.data.hotelId == request.auth.uid
+          (request.resource.data.role != 'hotel_partner' || request.resource.data.hotelId == request.auth.uid) &&
+          (request.resource.data.role != 'hospital_applicant' || request.resource.data.hospitalApplicationId == request.auth.uid)
         );
 
       allow read: if signedIn() && (
@@ -1004,9 +1010,89 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+
+
+    match /hospitalApplications/{applicationId} {
+      allow create: if signedIn()
+        && request.auth.uid == applicationId
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'hospital_applicant'
+        && request.resource.data.applicationId == applicationId
+        && request.resource.data.ownerUserId == request.auth.uid
+        && request.resource.data.status == 'pending_review'
+        && request.resource.data.termsAccepted == true
+        && request.resource.data.termsVersion == '2026-08-25-v1'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.submittedAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.ownerUserId == request.auth.uid ||
+        isCareAtlasStaff()
+      );
+
+      allow update: if signedIn()
+        && resource.data.ownerUserId == request.auth.uid
+        && resource.data.status in ['pending_review', 'needs_correction']
+        && request.resource.data.ownerUserId == resource.data.ownerUserId
+        && request.resource.data.applicationId == resource.data.applicationId
+        && request.resource.data.status == 'pending_review'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'hospitalName', 'legalName', 'country', 'city', 'address',
+          'contactName', 'contactPhone', 'website', 'description',
+          'internationalDeskEmail', 'internationalDeskPhone', 'languages',
+          'services', 'accreditationClaims', 'specialtyIds',
+          'requestedSpecialtyNames', 'status', 'submittedAt', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.submittedAt == request.time;
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /specialties/{specialtyId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /hospitalCommercials/{hospitalId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /hospitalTeamInvites/{inviteId} {
+      allow create: if signedIn()
+        && currentUser().data.role == 'hospital_admin'
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.hospitalId == currentUser().data.hospitalId
+        && request.resource.data.requestedRole in ['hospital_doctor', 'hospital_coordinator']
+        && request.resource.data.status == 'pending_admin_provisioning'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        isCareAtlasStaff() ||
+        (isHospitalUser() && resource.data.hospitalId == hospitalId())
+      );
+
+      allow update: if isAdmin();
+
+      allow delete: if signedIn()
+        && currentUser().data.role == 'hospital_admin'
+        && resource.data.hospitalId == hospitalId()
+        && resource.data.status == 'pending_admin_provisioning';
+    }
+
     match /hospitals/{hospitalDocId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+
+      allow update: if signedIn()
+        && currentUser().data.role == 'hospital_admin'
+        && currentUser().data.hospitalId == hospitalDocId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'website', 'address', 'description', 'internationalDeskEmail',
+          'internationalDeskPhone', 'languages', 'services', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
     }
 
     match /doctors/{doctorId} {

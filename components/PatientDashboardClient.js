@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, BadgeIndianRupee, CheckCircle2, Circle, Clock3, FileText, Hospital, Plane, ShieldCheck, Stethoscope, UserRound } from 'lucide-react';
+import { ArrowRight, BadgeIndianRupee, CheckCircle2, Circle, Clock3, FileText, HeartPulse, Hospital, Plane, ShieldCheck, Stethoscope, UserRound } from 'lucide-react';
 import PatientShell from '@/components/PatientShell';
 import { useAuth } from '@/components/AuthProvider';
 import { getPatientCases } from '@/lib/firebase/cases';
@@ -85,6 +85,7 @@ export default function PatientDashboardClient() {
           <h2>Create your first treatment case.</h2>
           <p>Your account is authenticated. Submit your medical requirement and CareAtlas will save the case securely in Firestore.</p>
           <Link className="button" href="/get-treatment-plan">Get a treatment plan <ArrowRight size={17}/></Link>
+          <Link className="link-arrow" href="/patient/discover">Or explore CareAtlas specialties <ArrowRight size={17}/></Link>
         </section>
       </PatientShell>
     );
@@ -123,6 +124,14 @@ export default function PatientDashboardClient() {
         </section>
 
         <div className="patient-stack">
+          <section className="portal-card phase7g-dashboard-discover">
+            <span className="eyebrow">DISCOVER CARE</span>
+            <HeartPulse size={26}/>
+            <h3>Explore specialties and approved hospitals.</h3>
+            <p>The CareAtlas specialty catalogue grows as hospital capabilities are reviewed and published.</p>
+            <Link href="/patient/discover" className="link-arrow">Discover care <ArrowRight size={17}/></Link>
+          </section>
+
           <section className="portal-card next-action-card">
             <span className="eyebrow">CASE STATUS</span>
             <ShieldCheck size={28}/>

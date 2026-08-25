@@ -73,3 +73,6 @@ Phase 7E adds case-linked travel readiness, visa/flight/airport-pickup/local-tra
 
 ## Phase 7F — Reviews, Trust & Patient Outcomes
 Phase 7F adds verified-journey patient reviews, moderation, patient-reported outcomes, private concerns, provider responses and internal experience-quality signals. These metrics are not clinical outcome verification or accreditation. See `PHASE7F_SETUP.md`.
+
+## Phase 7G — Hospital Network & Specialty Marketplace
+Hospital self-registration now feeds an admin verification workflow. Approved specialties are normalized into a Firestore master catalogue and automatically power the public specialty marketplace, homepage discovery, patient Discover Care area, and approved hospital listings. CareAtlas commercial terms remain in a separate admin-only collection.

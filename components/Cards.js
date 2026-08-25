@@ -37,17 +37,18 @@ export function DestinationCard({ destination }) {
 }
 
 export function HospitalCard({ hospital }) {
+  const href = hospital.profileHref || `/hospitals/${hospital.slug}`;
   return (
     <article className="hospital-card card-hover">
-      <Link href={`/hospitals/${hospital.slug}`} className="hospital-img-wrap">
-        <div className="hospital-image" style={{ backgroundImage: `url(${hospital.image})` }} />
+      <Link href={href} className="hospital-img-wrap">
+        <div className="hospital-image" style={hospital.image ? { backgroundImage: `url(${hospital.image})` } : { background: 'linear-gradient(135deg,#dce9ee,#f5f9fa)' }} />
         {hospital.verified && <span className="verified-badge"><BadgeCheck size={15}/> Verified</span>}
       </Link>
       <div className="hospital-card-body">
         <div className="hospital-heading">
           <div>
             <span className="mini-label"><MapPin size={13}/> {hospital.city}, {hospital.country} {hospital.flag}</span>
-            <h3><Link href={`/hospitals/${hospital.slug}`}>{hospital.name}</Link></h3>
+            <h3><Link href={href}>{hospital.name}</Link></h3>
           </div>
           <span className="rating"><Star size={15} fill="currentColor"/> {hospital.rating}</span>
         </div>
@@ -56,7 +57,7 @@ export function HospitalCard({ hospital }) {
           <div><small>Selected treatments from</small><strong>{hospital.price}</strong></div>
           <div className="response"><Clock3 size={15}/> {hospital.response}</div>
         </div>
-        <div className="hospital-compare-row"><CompareButton hospitalSlug={hospital.slug} /></div>
+        {!hospital.firestoreManaged && <div className="hospital-compare-row"><CompareButton hospitalSlug={hospital.slug} /></div>}
       </div>
     </article>
   );
