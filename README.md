@@ -82,3 +82,6 @@ CareAtlas now includes an explainable Care Navigator at `/care-navigator` and `/
 
 ## Phase 8B — Coordinator Copilot
 CareAtlas operations now has `/admin/copilot` plus a case-level Copilot panel. It calculates live operational priority, identifies workflow blockers, suggests next actions, checks journey readiness and can place a patient-safe draft into the existing message composer for human review. It does not make clinical decisions, auto-assign hospitals or auto-send communications. See `PHASE8B_SETUP.md`.
+
+## Phase 8C — Growth & CRM Engine
+CareAtlas operations now has `/admin/growth` for explainable patient-journey recovery, partner lead prioritization, Care Navigator engagement signals, conversion funnels and campaign attribution. Scores are operational signals rather than medical triage or conversion probabilities. Hospital commercials, affiliate payout size and clinical severity are excluded, and all follow-up remains manual. See `PHASE8C_SETUP.md`.
