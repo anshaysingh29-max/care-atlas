@@ -668,6 +668,182 @@ service cloud.firestore {
     }
 
 
+
+    match /travelProfiles/{caseId} {
+      function requestedTravelProfileCase() {
+        return get(/databases/$(database)/documents/cases/$(caseId));
+      }
+
+      allow create: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.resource.data.caseId == caseId
+        && request.resource.data.patientId == request.auth.uid
+        && requestedTravelProfileCase().data.patientId == request.auth.uid
+        && request.resource.data.caseNumber == requestedTravelProfileCase().data.caseNumber
+        && request.resource.data.homeCity is string
+        && request.resource.data.destinationCountry is string
+        && request.resource.data.passportReady is bool
+        && request.resource.data.companionCount is int
+        && request.resource.data.companionCount >= 0
+        && request.resource.data.companionCount <= 10
+        && request.resource.data.mobilitySupport is bool
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 700
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff()
+      );
+
+      allow update: if signedIn()
+        && resource.data.patientId == request.auth.uid
+        && requestedTravelProfileCase().data.patientId == request.auth.uid
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.caseId == resource.data.caseId
+        && request.resource.data.caseNumber == resource.data.caseNumber
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'homeCity', 'destinationCountry', 'passportReady', 'companionCount',
+          'mobilitySupport', 'notes', 'updatedAt'
+        ])
+        && request.resource.data.passportReady is bool
+        && request.resource.data.companionCount is int
+        && request.resource.data.companionCount >= 0
+        && request.resource.data.companionCount <= 10
+        && request.resource.data.mobilitySupport is bool
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 700
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isCareAtlasStaff();
+      allow delete: if isAdmin();
+    }
+
+    match /travelRequests/{requestId} {
+      function requestedTravelCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      allow create: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.resource.data.requestId == requestId
+        && request.resource.data.patientId == request.auth.uid
+        && requestedTravelCase().data.patientId == request.auth.uid
+        && request.resource.data.caseNumber == requestedTravelCase().data.caseNumber
+        && request.resource.data.requestType in [
+          'visa_assistance', 'flight_assistance', 'airport_pickup', 'local_transport'
+        ]
+        && request.resource.data.status == 'requested'
+        && request.resource.data.providerName == ''
+        && request.resource.data.confirmationReference == ''
+        && request.resource.data.estimatedAmount == null
+        && request.resource.data.adminNote == ''
+        && request.resource.data.passengers is int
+        && request.resource.data.passengers >= 1
+        && request.resource.data.passengers <= 12
+        && request.resource.data.mobilitySupport is bool
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 600
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.cancelledAt == null
+        && request.resource.data.arrangedAt == null
+        && request.resource.data.completedAt == null
+        && request.resource.data.requestedAt == request.time
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff()
+      );
+
+      allow update: if signedIn()
+        && resource.data.patientId == request.auth.uid
+        && resource.data.status in ['requested', 'in_review', 'documents_needed']
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'cancelledAt', 'updatedAt'
+        ])
+        && request.resource.data.cancelledAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isCareAtlasStaff()
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.caseId == resource.data.caseId
+        && request.resource.data.requestId == resource.data.requestId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'providerName', 'confirmationReference', 'estimatedAmount',
+          'currency', 'adminNote', 'destinationCountry', 'originCity', 'destinationCity',
+          'travelDate', 'travelTime', 'arrivalAirport', 'arrivalDate', 'arrivalTime',
+          'airline', 'flightNumber', 'updatedAt', 'arrangedAt', 'completedAt'
+        ])
+        && request.resource.data.status in [
+          'requested', 'in_review', 'documents_needed', 'arranged',
+          'confirmed', 'completed', 'declined', 'cancelled'
+        ]
+        && request.resource.data.providerName is string
+        && request.resource.data.confirmationReference is string
+        && (request.resource.data.estimatedAmount == null || request.resource.data.estimatedAmount is number)
+        && request.resource.data.adminNote is string
+        && request.resource.data.adminNote.size() <= 800
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isAdmin();
+    }
+
+    match /travelItineraryEvents/{eventId} {
+      function requestedItineraryCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      allow create: if isCareAtlasStaff()
+        && request.resource.data.eventId == eventId
+        && request.resource.data.patientId == requestedItineraryCase().data.patientId
+        && request.resource.data.caseNumber == requestedItineraryCase().data.caseNumber
+        && request.resource.data.eventType in [
+          'flight', 'airport_pickup', 'hotel_checkin', 'hotel_checkout',
+          'hospital_visit', 'consultation', 'treatment', 'local_transport', 'custom'
+        ]
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 160
+        && request.resource.data.eventDate is string
+        && request.resource.data.eventDate.size() > 0
+        && request.resource.data.eventTime is string
+        && request.resource.data.location is string
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 800
+        && request.resource.data.status in ['planned', 'confirmed', 'completed', 'cancelled']
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdByRole == currentUser().data.role
+        && request.resource.data.source == 'admin_web'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff()
+      );
+
+      allow update: if isCareAtlasStaff()
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.caseId == resource.data.caseId
+        && request.resource.data.eventId == resource.data.eventId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'eventType', 'title', 'eventDate', 'eventTime', 'location', 'note', 'status', 'updatedAt'
+        ])
+        && request.resource.data.eventType in [
+          'flight', 'airport_pickup', 'hotel_checkin', 'hotel_checkout',
+          'hospital_visit', 'consultation', 'treatment', 'local_transport', 'custom'
+        ]
+        && request.resource.data.status in ['planned', 'confirmed', 'completed', 'cancelled']
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isAdmin();
+    }
+
     match /hotels/{hotelId} {
       allow get: if (
         (signedIn() && request.auth.uid == hotelId) ||

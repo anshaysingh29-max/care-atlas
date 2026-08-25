@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, BadgeIndianRupee, BedDouble, Building2, CalendarDays, ClipboardList, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, ReceiptText, ShieldCheck, Stethoscope, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
+import { Activity, BadgeIndianRupee, BedDouble, Building2, CalendarDays, ClipboardList, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, Plane, ReceiptText, ShieldCheck, Stethoscope, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminRole, isCareAtlasStaffRole } from '@/lib/firebase/admin';
 
@@ -17,6 +17,7 @@ const baseItems = [
   ['/admin/coordinators', 'Coordinators', HeartHandshake],
   ['/admin/partner-leads', 'Partner Leads', UserRoundPlus],
   ['/admin/hotel-bookings', 'Hotel Bookings', CalendarDays],
+  ['/admin/travel', 'Travel Concierge', Plane],
   ['/admin/referrals', 'Referrals', UsersRound],
   ['/admin/content', 'Content', MapPinned],
   ['/admin/analytics', 'Analytics', Activity]

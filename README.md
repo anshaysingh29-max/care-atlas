@@ -63,3 +63,10 @@ Patients can now keep their patient role and apply for a second referral-partner
 
 ## Phase 7C — Partner KYC & payouts
 Phase 7C adds partner identity/business verification, bank/UPI payout destinations, KYC-gated commission approval, withdrawal requests, configurable payout thresholds, tax/payment-reference fields, admin settlement controls, fraud flags and partner payout statements. See `PHASE7C_SETUP.md`.
+
+
+## Phase 7D — Stay Network
+Phase 7D adds self-service accommodation partner onboarding, property review, rooms/rates, availability windows, patient stay requests, hotel booking operations and manual settlement tracking. Stay Partners do not receive patient medical records. See `PHASE7D_SETUP.md`.
+
+## Phase 7E — Travel Concierge
+Phase 7E adds case-linked travel readiness, visa/flight/airport-pickup/local-transport requests, CareAtlas travel operations, patient notifications and a combined itinerary that merges Stay Network bookings, consultations and confirmed travel services. Passport numbers and scans are intentionally not collected. See `PHASE7E_SETUP.md`.
