@@ -7,6 +7,7 @@ import {
   BadgeIndianRupee,
   CircleDollarSign,
   Handshake,
+  FileCheck2,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -25,6 +26,7 @@ const items = [
   ['/partner/leads', 'Leads', UserRoundPlus],
   ['/partner/referrals', 'Referrals', UsersRound],
   ['/partner/earnings', 'Earnings', CircleDollarSign],
+  ['/partner/verification', 'Verification', FileCheck2],
   ['/partner/payouts', 'Payouts', ReceiptText],
   ['/partner/marketing', 'Marketing', Megaphone],
   ['/partner/profile', 'Profile', UserRoundCog]

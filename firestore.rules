@@ -44,6 +44,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/partners/$(request.auth.uid)).data.status == 'approved';
     }
 
+    function partnerKycVerified(partnerId) {
+      return exists(/databases/$(database)/documents/partnerKyc/$(partnerId))
+        && get(/databases/$(database)/documents/partnerKyc/$(partnerId)).data.status == 'verified';
+    }
+
+    function partnerPayoutVerified(partnerId) {
+      return exists(/databases/$(database)/documents/partnerPayoutProfiles/$(partnerId))
+        && get(/databases/$(database)/documents/partnerPayoutProfiles/$(partnerId)).data.status == 'verified';
+    }
+
     function isHospitalUser() {
       return hasUserProfile() && currentUser().data.role in [
         'hospital_admin',
@@ -316,6 +326,184 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    match /partnerKyc/{partnerId} {
+      allow create: if hasReferralPartnerProfile()
+        && request.auth.uid == partnerId
+        && request.resource.data.partnerId == request.auth.uid
+        && request.resource.data.entityType in ['individual', 'business']
+        && request.resource.data.legalName is string
+        && request.resource.data.legalName.size() > 0
+        && request.resource.data.country is string
+        && request.resource.data.taxIdType is string
+        && request.resource.data.taxId is string
+        && request.resource.data.taxId.size() >= 4
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.kycVersion == '2026-08-25-v1'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        request.auth.uid == partnerId ||
+        isAdmin()
+      );
+
+      allow update: if hasReferralPartnerProfile()
+        && request.auth.uid == partnerId
+        && resource.data.status != 'verified'
+        && request.resource.data.partnerId == resource.data.partnerId
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.reviewNote == ''
+        && request.resource.data.reviewedBy == null
+        && request.resource.data.reviewedAt == null
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'entityType','legalName','country','taxIdType','taxId','taxIdMasked',
+          'addressLine1','addressLine2','city','region','postalCode','status',
+          'kycVersion','reviewNote','reviewedBy','reviewedAt','submittedAt','updatedAt'
+        ]);
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','reviewNote','reviewedBy','reviewedAt','updatedAt'
+        ])
+        && request.resource.data.status in ['submitted','needs_correction','verified','rejected']
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    match /partnerPayoutProfiles/{partnerId} {
+      allow create: if hasReferralPartnerProfile()
+        && request.auth.uid == partnerId
+        && request.resource.data.partnerId == request.auth.uid
+        && request.resource.data.method in ['bank','upi']
+        && request.resource.data.accountHolder is string
+        && request.resource.data.accountHolder.size() > 0
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        request.auth.uid == partnerId ||
+        isAdmin()
+      );
+
+      allow update: if hasReferralPartnerProfile()
+        && request.auth.uid == partnerId
+        && resource.data.status != 'verified'
+        && request.resource.data.partnerId == resource.data.partnerId
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.reviewNote == ''
+        && request.resource.data.reviewedBy == null
+        && request.resource.data.reviewedAt == null
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'method','payoutCurrency','payoutCountry','accountHolder','bankName',
+          'accountNumber','accountNumberMasked','routingCode','swiftCode','upiId',
+          'status','reviewNote','reviewedBy','reviewedAt','submittedAt','updatedAt'
+        ]);
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','reviewNote','reviewedBy','reviewedAt','updatedAt'
+        ])
+        && request.resource.data.status in ['submitted','needs_correction','verified','rejected']
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    match /systemSettings/{settingId} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /partnerPayoutRequests/{partnerId} {
+      allow create: if isReferralPartner()
+        && request.auth.uid == partnerId
+        && request.resource.data.requestId == partnerId
+        && request.resource.data.partnerId == partnerId
+        && partnerKycVerified(partnerId)
+        && partnerPayoutVerified(partnerId)
+        && request.resource.data.status == 'requested'
+        && request.resource.data.grossAmountSnapshot is number
+        && request.resource.data.grossAmountSnapshot > 0
+        && request.resource.data.taxWithheldSnapshot == 0
+        && request.resource.data.netAmountSnapshot == request.resource.data.grossAmountSnapshot
+        && request.resource.data.commissionIds is list
+        && request.resource.data.commissionIds.size() > 0
+        && request.resource.data.requestedAt == request.time
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        request.auth.uid == partnerId ||
+        isAdmin()
+      );
+
+      allow update: if isReferralPartner()
+        && request.auth.uid == partnerId
+        && resource.data.status in ['paid','rejected']
+        && request.resource.data.partnerId == resource.data.partnerId
+        && request.resource.data.requestId == resource.data.requestId
+        && partnerKycVerified(partnerId)
+        && partnerPayoutVerified(partnerId)
+        && request.resource.data.status == 'requested'
+        && request.resource.data.taxWithheldSnapshot == 0
+        && request.resource.data.netAmountSnapshot == request.resource.data.grossAmountSnapshot
+        && request.resource.data.commissionIds is list
+        && request.resource.data.commissionIds.size() > 0
+        && request.resource.data.requestedAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'partnerName','grossAmountSnapshot','taxWithheldSnapshot','netAmountSnapshot',
+          'currency','commissionIds','commissionCount','payoutMethod',
+          'payoutDestinationSnapshot','status','paymentReference','settlementNote',
+          'requestedAt','updatedAt','paidAt'
+        ]);
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','taxWithheldSnapshot','netAmountSnapshot','paymentReference',
+          'settlementNote','paidAt','updatedAt'
+        ])
+        && request.resource.data.status in ['on_hold','paid','rejected']
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    match /payoutSettlements/{settlementId} {
+      allow read: if signedIn() && (
+        isAdmin() ||
+        (hasReferralPartnerProfile() && resource.data.partnerId == request.auth.uid)
+      );
+
+      allow create: if isAdmin()
+        && request.resource.data.settlementId == settlementId
+        && request.resource.data.paidBy == request.auth.uid
+        && request.resource.data.partnerId is string
+        && request.resource.data.grossAmount is number
+        && request.resource.data.taxWithheld is number
+        && request.resource.data.netAmount is number
+        && request.resource.data.netAmount >= 0
+        && request.resource.data.paymentReference is string
+        && request.resource.data.paymentReference.size() > 0
+        && request.resource.data.paidAt == request.time
+        && request.resource.data.createdAt == request.time;
+
+      allow update, delete: if false;
+    }
+
     match /referralCodes/{code} {
       // Public callers may validate a code by exact document ID, but cannot enumerate codes.
       allow get: if true;
@@ -447,9 +635,10 @@ service cloud.firestore {
 
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'status', 'updatedAt', 'approvedAt', 'paidAt'
+          'status', 'updatedAt', 'approvedAt', 'paidAt', 'payoutRequestId', 'paymentReference'
         ])
         && request.resource.data.status in ['approved', 'on_hold', 'paid', 'rejected']
+        && (request.resource.data.status != 'approved' || partnerKycVerified(resource.data.partnerId))
         && request.resource.data.updatedAt == request.time;
 
       allow delete: if false;

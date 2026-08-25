@@ -110,7 +110,7 @@ export default function PatientAffiliateClient() {
           <span><small>Partner type</small><strong>{partnerProfile.partnerType}</strong></span>
         </div>
         <div className="phase7b-affiliate-actions">
-          <Link className="button" href="/partner">Open Partner workspace <ArrowRight size={16}/></Link>
+          <Link className="button" href="/partner">Open Partner workspace <ArrowRight size={16}/></Link><Link className="text-button" href="/partner/verification"><ShieldCheck size={15}/> Complete payout verification</Link>
           <button className="text-button phase7b-copy-button" type="button" onClick={copy}><Copy size={15}/>{copied?'Copied':'Copy referral link'}</button>
         </div>
       </> : <p>CareAtlas will review the application before your referral code becomes active. You can continue using every patient feature normally while you wait.</p>}

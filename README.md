@@ -60,3 +60,6 @@ Referral-partner signup/approval, 60-day first-valid attribution, partner dashbo
 
 ## Phase 7B — Patient affiliates & growth tools
 Patients can now keep their patient role and apply for a second referral-partner profile under the same Firebase UID. Phase 7B also adds warm leads, campaign-tagged referral links, partner levels, funnel reporting and self-referral commission blocking. See `PHASE7B_SETUP.md`.
+
+## Phase 7C — Partner KYC & payouts
+Phase 7C adds partner identity/business verification, bank/UPI payout destinations, KYC-gated commission approval, withdrawal requests, configurable payout thresholds, tax/payment-reference fields, admin settlement controls, fraud flags and partner payout statements. See `PHASE7C_SETUP.md`.
