@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Building2, Clock3, FileText, HeartHandshake, LoaderCircle, PlaneTakeoff, UsersRound } from 'lucide-react';
 import AdminShell from '@/components/AdminShell';
+import AdminMyTasksPanel from '@/components/AdminMyTasksPanel';
 import { formatAdminTimestamp, getAdminDashboardData, stageLabel } from '@/lib/firebase/admin';
 
 export default function AdminDashboardClient() {
@@ -47,6 +48,8 @@ export default function AdminDashboardClient() {
               <section className="portal-card admin-mini-list"><span className="eyebrow">DOCUMENTS</span><h3>{data.documents} uploaded records</h3><p>Metadata is in Firestore; file bytes remain in private Google Drive.</p></section>
             </aside>
           </div>
+
+          <AdminMyTasksPanel/>
 
           <section className="portal-card phase6d-recent-card">
             <div className="portal-card-heading"><div><span className="eyebrow">RECENT CASES</span><h2>Latest operational activity.</h2></div><Clock3 size={20}/></div>

@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, BadgeIndianRupee, BarChart3, BedDouble, Bot, BrainCircuit, Building2, CalendarDays, ClipboardList, CircleDollarSign, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, Plane, ReceiptText, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
+import { Activity, BadgeIndianRupee, BarChart3, BedDouble, Bot, BrainCircuit, Building2, CalendarDays, ClipboardList, CircleDollarSign, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, ListChecks, LogOut, MapPinned, Plane, ReceiptText, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserCog, UserRoundPlus, UsersRound, Workflow } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminRole, isCareAtlasStaffRole } from '@/lib/firebase/admin';
 
 const baseItems = [
   ['/admin', 'Overview', LayoutDashboard],
   ['/admin/cases', 'Cases', ClipboardList],
+  ['/admin/tasks', 'Tasks & SLAs', ListChecks],
   ['/admin/copilot', 'Coordinator Copilot', BrainCircuit],
   ['/admin/growth', 'Growth CRM', BarChart3],
   ['/admin/patients', 'Patients', UsersRound],
@@ -33,7 +34,7 @@ export default function AdminShell({ children, title, subtitle, action }) {
   const router = useRouter();
   const { user, userProfile, loading, logout } = useAuth();
   const permitted = Boolean(user && userProfile && isCareAtlasStaffRole(userProfile.role));
-  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/business-intelligence', 'Business Intelligence', CircleDollarSign], ['/admin/specialties', 'Specialties', Sparkles], ['/admin/hospital-commercials', 'Hospital Commercials', BadgeIndianRupee], ['/admin/hotels', 'Stay Partners', BedDouble], ['/admin/partners', 'Partners', Handshake], ['/admin/partner-kyc', 'Partner KYC', IdCard], ['/admin/commissions', 'Commissions', BadgeIndianRupee], ['/admin/payouts', 'Payouts', ReceiptText], ['/admin/audit', 'Audit Trail', History]] : baseItems;
+  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/automation', 'Workflow Automation', Workflow], ['/admin/business-intelligence', 'Business Intelligence', CircleDollarSign], ['/admin/specialties', 'Specialties', Sparkles], ['/admin/hospital-commercials', 'Hospital Commercials', BadgeIndianRupee], ['/admin/hotels', 'Stay Partners', BedDouble], ['/admin/partners', 'Partners', Handshake], ['/admin/partner-kyc', 'Partner KYC', IdCard], ['/admin/commissions', 'Commissions', BadgeIndianRupee], ['/admin/payouts', 'Payouts', ReceiptText], ['/admin/audit', 'Audit Trail', History]] : baseItems;
 
   useEffect(() => {
     if (loading) return;

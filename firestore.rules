@@ -1580,6 +1580,47 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    // Phase 8E — internal workflow tasks and browser-run SLA automation.
+    match /workflowTasks/{taskId} {
+      allow read: if isCareAtlasStaff();
+
+      allow create: if isCareAtlasStaff()
+        && request.resource.data.source in ['automation', 'manual']
+        && request.resource.data.status in ['open', 'in_progress', 'blocked', 'completed', 'dismissed']
+        && request.resource.data.priority in ['urgent', 'high', 'normal', 'low']
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isCareAtlasStaff()
+        && request.resource.data.source == resource.data.source
+        && request.resource.data.caseId == resource.data.caseId
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.status in ['open', 'in_progress', 'blocked', 'completed', 'dismissed']
+        && request.resource.data.priority in ['urgent', 'high', 'normal', 'low'];
+
+      allow delete: if false;
+    }
+
+    match /workflowAutomationConfig/{configId} {
+      allow read: if isCareAtlasStaff();
+      allow create, update: if isAdmin()
+        && configId == 'default'
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /workflowAutomationRuns/{runId} {
+      allow read: if isCareAtlasStaff();
+      allow create: if isCareAtlasStaff()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.actorRole == currentUser().data.role
+        && request.resource.data.mode == 'browser_sync'
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
     match /auditLogs/{logId} {
       allow read: if isAdmin();
 

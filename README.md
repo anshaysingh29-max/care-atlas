@@ -88,3 +88,6 @@ CareAtlas operations now has `/admin/growth` for explainable patient-journey rec
 
 ## Phase 8D — Revenue & Business Intelligence
 CareAtlas admins now have `/admin/business-intelligence` plus an admin-only case-finance record on each case. The dashboard reports recorded revenue, net contribution, hospital conversion, affiliate ROI, Stay Network economics, destination/treatment profitability and finance data-quality gaps one currency at a time. Financial data is isolated from patients/providers and never influences AI hospital matching or patient prioritization. See `PHASE8D_SETUP.md`.
+
+## Phase 8E — Workflow Automation & SLA Engine
+CareAtlas operations now has `/admin/tasks` and admin-only `/admin/automation`. Deterministic workflow rules create idempotent case tasks, SLA due dates, live overdue/escalation states, manual task controls, case-level task history and a dashboard My Tasks view. In the GitHub Pages/Firebase MVP the engine is browser-run: staff must run workflow sync for tasks to materialize or auto-resolve from source signals. Background scheduling is intentionally deferred until a secure server-side scheduler is introduced. See `PHASE8E_SETUP.md`.

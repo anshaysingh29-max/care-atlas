@@ -7,6 +7,7 @@ import AdminShell from '@/components/AdminShell';
 import AdminCaseMessagingPanel from '@/components/AdminCaseMessagingPanel';
 import AdminCaseCopilotPanel from '@/components/AdminCaseCopilotPanel';
 import AdminCaseFinancePanel from '@/components/AdminCaseFinancePanel';
+import AdminCaseWorkflowTasksPanel from '@/components/AdminCaseWorkflowTasksPanel';
 import { useAuth } from '@/components/AuthProvider';
 import { hospitals } from '@/lib/data';
 import { getPublishedHospitals } from '@/lib/firebase/marketplace';
@@ -144,6 +145,8 @@ export default function AdminCaseDetailClient() {
             </section>
 
             <AdminCaseCopilotPanel caseId={caseId} onUseDraft={text => setCopilotDraft({ text, token: Date.now() })}/>
+
+            <AdminCaseWorkflowTasksPanel caseId={caseId}/>
 
             <AdminCaseMessagingPanel caseId={caseId} suggestedDraft={copilotDraft}/>
           </div>
