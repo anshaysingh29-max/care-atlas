@@ -12,6 +12,7 @@ import {
   ReceiptText,
   ShieldCheck,
   SlidersHorizontal,
+  Star,
   UserRoundCog
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
@@ -23,6 +24,7 @@ const items = [
   ['/hotel/rates', 'Rooms & Rates', BedDouble],
   ['/hotel/availability', 'Availability', SlidersHorizontal],
   ['/hotel/payouts', 'Settlements', ReceiptText],
+  ['/hotel/reviews', 'Guest Feedback', Star],
   ['/hotel/profile', 'Property Profile', UserRoundCog]
 ];
 

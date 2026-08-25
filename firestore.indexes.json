@@ -7,6 +7,15 @@
         { "fieldPath": "caseId", "order": "ASCENDING" },
         { "fieldPath": "hospitalId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "publishedExperienceReviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "targetType", "order": "ASCENDING" },
+        { "fieldPath": "targetId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

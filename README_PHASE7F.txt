@@ -1,0 +1,1 @@
+CareAtlas Phase 7F adds verified-journey reviews, patient-reported outcomes, private concerns, provider responses, admin moderation and internal experience-quality signals. See PHASE7F_SETUP.md before testing.

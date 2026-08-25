@@ -1161,6 +1161,251 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /experienceReviews/{reviewId} {
+      function requestedReviewCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      function linkedReviewCase() {
+        return get(/databases/$(database)/documents/cases/$(resource.data.caseId));
+      }
+
+      function requestedReviewBooking() {
+        return get(/databases/$(database)/documents/hotelBookings/$(request.resource.data.bookingId));
+      }
+
+      function validVerifiedJourney() {
+        return request.resource.data.verifiedJourney == true
+          && (
+            (
+              request.resource.data.targetType == 'hospital'
+              && request.resource.data.targetId in requestedReviewCase().data.get('assignedHospitalIds', [])
+              && requestedReviewCase().data.currentStage in ['treatment', 'follow_up']
+            ) ||
+            (
+              request.resource.data.targetType == 'hotel'
+              && request.resource.data.bookingId is string
+              && request.resource.data.bookingId.size() > 0
+              && requestedReviewBooking().data.patientId == request.auth.uid
+              && requestedReviewBooking().data.caseId == request.resource.data.caseId
+              && requestedReviewBooking().data.hotelId == request.resource.data.targetId
+              && requestedReviewBooking().data.status == 'completed'
+            ) ||
+            (
+              request.resource.data.targetType == 'careatlas'
+              && request.resource.data.targetId == 'careatlas'
+              && requestedReviewCase().data.currentStage in ['treatment', 'follow_up']
+            )
+          );
+      }
+
+      allow create: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.resource.data.reviewId == reviewId
+        && request.resource.data.patientId == request.auth.uid
+        && requestedReviewCase().data.patientId == request.auth.uid
+        && request.resource.data.targetType in ['hospital', 'hotel', 'careatlas']
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.patientReportedOutcome in [
+          'much_better', 'better', 'same', 'worse', 'prefer_not_to_say'
+        ]
+        && request.resource.data.wouldRecommend is bool
+        && request.resource.data.status == 'pending_review'
+        && request.resource.data.source == 'patient_web'
+        && validVerifiedJourney()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff()
+      );
+
+      allow update: if signedIn()
+        && resource.data.patientId == request.auth.uid
+        && resource.data.status == 'pending_review'
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.caseId == resource.data.caseId
+        && request.resource.data.targetType == resource.data.targetType
+        && request.resource.data.targetId == resource.data.targetId
+        && request.resource.data.bookingId == resource.data.bookingId
+        && request.resource.data.reviewId == resource.data.reviewId
+        && request.resource.data.verifiedJourney == true
+        && request.resource.data.status == 'pending_review'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'rating', 'title', 'body', 'patientReportedOutcome', 'wouldRecommend', 'updatedAt'
+        ])
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.patientReportedOutcome in [
+          'much_better', 'better', 'same', 'worse', 'prefer_not_to_say'
+        ]
+        && request.resource.data.wouldRecommend is bool
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isCareAtlasStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'moderatedBy', 'moderatedAt', 'publishedAt', 'updatedAt'
+        ])
+        && request.resource.data.status in ['pending_review', 'published', 'rejected', 'hidden']
+        && request.resource.data.moderatedBy == request.auth.uid
+        && request.resource.data.moderatedAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    match /publishedExperienceReviews/{reviewId} {
+      allow read: if signedIn() && (
+        isCareAtlasStaff() ||
+        (
+          isHospitalUser()
+          && resource.data.status == 'published'
+          && resource.data.targetType == 'hospital'
+          && resource.data.targetId == hospitalId()
+        ) ||
+        (
+          isHotelPartner()
+          && resource.data.status == 'published'
+          && resource.data.targetType == 'hotel'
+          && resource.data.targetId == request.auth.uid
+        )
+      );
+
+      allow create, update, delete: if isCareAtlasStaff();
+    }
+
+    match /reviewResponses/{reviewId} {
+      function responseReview() {
+        return get(/databases/$(database)/documents/publishedExperienceReviews/$(reviewId));
+      }
+
+      function providerCanRespond() {
+        return responseReview().data.status == 'published'
+          && (
+            (
+              isHospitalUser()
+              && responseReview().data.targetType == 'hospital'
+              && responseReview().data.targetId == hospitalId()
+              && request.resource.data.providerType == 'hospital'
+              && request.resource.data.providerId == hospitalId()
+              && request.resource.data.source == 'hospital_web'
+            ) ||
+            (
+              hotelPartnerApproved()
+              && responseReview().data.targetType == 'hotel'
+              && responseReview().data.targetId == request.auth.uid
+              && request.resource.data.providerType == 'hotel'
+              && request.resource.data.providerId == request.auth.uid
+              && request.resource.data.source == 'hotel_web'
+            )
+          );
+      }
+
+      allow create: if signedIn()
+        && request.resource.data.reviewId == reviewId
+        && request.resource.data.respondedBy == request.auth.uid
+        && providerCanRespond()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if signedIn()
+        && resource.data.respondedBy == request.auth.uid
+        && request.resource.data.reviewId == resource.data.reviewId
+        && request.resource.data.providerType == resource.data.providerType
+        && request.resource.data.providerId == resource.data.providerId
+        && request.resource.data.respondedBy == resource.data.respondedBy
+        && providerCanRespond()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'providerName', 'responseText', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if isCareAtlasStaff()
+        || (
+          signedIn()
+          && exists(/databases/$(database)/documents/experienceReviews/$(reviewId))
+          && get(/databases/$(database)/documents/experienceReviews/$(reviewId)).data.patientId == request.auth.uid
+        )
+        || (
+          isHospitalUser()
+          && responseReview().data.status == 'published'
+          && responseReview().data.targetType == 'hospital'
+          && responseReview().data.targetId == hospitalId()
+        )
+        || (
+          isHotelPartner()
+          && responseReview().data.status == 'published'
+          && responseReview().data.targetType == 'hotel'
+          && responseReview().data.targetId == request.auth.uid
+        );
+
+      allow delete: if false;
+    }
+
+    match /patientConcerns/{concernId} {
+      function requestedConcernCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      function requestedConcernBooking() {
+        return get(/databases/$(database)/documents/hotelBookings/$(request.resource.data.bookingId));
+      }
+
+      function validConcernTarget() {
+        return (
+          request.resource.data.targetType == 'careatlas'
+          && request.resource.data.targetId == 'careatlas'
+        ) || (
+          request.resource.data.targetType == 'hospital'
+          && request.resource.data.targetId in requestedConcernCase().data.get('assignedHospitalIds', [])
+        ) || (
+          request.resource.data.targetType == 'hotel'
+          && request.resource.data.bookingId is string
+          && request.resource.data.bookingId.size() > 0
+          && requestedConcernBooking().data.patientId == request.auth.uid
+          && requestedConcernBooking().data.caseId == request.resource.data.caseId
+          && requestedConcernBooking().data.hotelId == request.resource.data.targetId
+        );
+      }
+
+      allow create: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.resource.data.concernId == concernId
+        && request.resource.data.patientId == request.auth.uid
+        && requestedConcernCase().data.patientId == request.auth.uid
+        && request.resource.data.targetType in ['careatlas', 'hospital', 'hotel']
+        && validConcernTarget()
+        && request.resource.data.status == 'open'
+        && request.resource.data.category in [
+          'Communication', 'Hospital experience', 'Accommodation', 'Travel support',
+          'Billing or charges', 'Privacy or consent', 'Other'
+        ]
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff()
+      );
+
+      allow update: if isCareAtlasStaff()
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.caseId == resource.data.caseId
+        && request.resource.data.concernId == resource.data.concernId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'assignedTo', 'resolutionSummary', 'resolvedAt', 'updatedAt'
+        ])
+        && request.resource.data.status in ['open', 'in_review', 'waiting_on_patient', 'resolved', 'closed']
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
     match /notifications/{notificationId} {
       function requestedNotificationCase() {
         return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));

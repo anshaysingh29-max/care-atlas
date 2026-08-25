@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
-import { Building2, CalendarClock, FilePlus2, FolderKanban, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, Stethoscope } from 'lucide-react';
+import { Building2, CalendarClock, FilePlus2, FolderKanban, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, Star, Stethoscope } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { getHospitalCatalogueProfile, isHospitalUserRole } from '@/lib/firebase/hospital';
 
@@ -13,6 +13,7 @@ const items = [
   ['/hospital/treatment-plans', 'Treatment Plans', FilePlus2],
   ['/hospital/consultations', 'Consultations', CalendarClock],
   ['/hospital/messages', 'Messages', MessageCircle],
+  ['/hospital/reviews', 'Patient Feedback', Star],
   ['/hospital/profile', 'Hospital Profile', Building2]
 ];
 

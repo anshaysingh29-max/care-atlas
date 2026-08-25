@@ -7,6 +7,7 @@ import './phase7b.css';
 import './phase7c.css';
 import './phase7d.css';
 import './phase7e.css';
+import './phase7f.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/components/AuthProvider';

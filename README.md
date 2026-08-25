@@ -70,3 +70,6 @@ Phase 7D adds self-service accommodation partner onboarding, property review, ro
 
 ## Phase 7E — Travel Concierge
 Phase 7E adds case-linked travel readiness, visa/flight/airport-pickup/local-transport requests, CareAtlas travel operations, patient notifications and a combined itinerary that merges Stay Network bookings, consultations and confirmed travel services. Passport numbers and scans are intentionally not collected. See `PHASE7E_SETUP.md`.
+
+## Phase 7F — Reviews, Trust & Patient Outcomes
+Phase 7F adds verified-journey patient reviews, moderation, patient-reported outcomes, private concerns, provider responses and internal experience-quality signals. These metrics are not clinical outcome verification or accreditation. See `PHASE7F_SETUP.md`.
