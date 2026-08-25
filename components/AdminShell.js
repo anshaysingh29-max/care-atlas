@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, BadgeIndianRupee, BarChart3, BedDouble, Bot, BrainCircuit, Building2, CalendarDays, ClipboardList, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, Plane, ReceiptText, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
+import { Activity, BadgeIndianRupee, BarChart3, BedDouble, Bot, BrainCircuit, Building2, CalendarDays, ClipboardList, CircleDollarSign, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, Plane, ReceiptText, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminRole, isCareAtlasStaffRole } from '@/lib/firebase/admin';
 
@@ -33,7 +33,7 @@ export default function AdminShell({ children, title, subtitle, action }) {
   const router = useRouter();
   const { user, userProfile, loading, logout } = useAuth();
   const permitted = Boolean(user && userProfile && isCareAtlasStaffRole(userProfile.role));
-  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/specialties', 'Specialties', Sparkles], ['/admin/hospital-commercials', 'Hospital Commercials', BadgeIndianRupee], ['/admin/hotels', 'Stay Partners', BedDouble], ['/admin/partners', 'Partners', Handshake], ['/admin/partner-kyc', 'Partner KYC', IdCard], ['/admin/commissions', 'Commissions', BadgeIndianRupee], ['/admin/payouts', 'Payouts', ReceiptText], ['/admin/audit', 'Audit Trail', History]] : baseItems;
+  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/business-intelligence', 'Business Intelligence', CircleDollarSign], ['/admin/specialties', 'Specialties', Sparkles], ['/admin/hospital-commercials', 'Hospital Commercials', BadgeIndianRupee], ['/admin/hotels', 'Stay Partners', BedDouble], ['/admin/partners', 'Partners', Handshake], ['/admin/partner-kyc', 'Partner KYC', IdCard], ['/admin/commissions', 'Commissions', BadgeIndianRupee], ['/admin/payouts', 'Payouts', ReceiptText], ['/admin/audit', 'Audit Trail', History]] : baseItems;
 
   useEffect(() => {
     if (loading) return;

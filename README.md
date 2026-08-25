@@ -85,3 +85,6 @@ CareAtlas operations now has `/admin/copilot` plus a case-level Copilot panel. I
 
 ## Phase 8C — Growth & CRM Engine
 CareAtlas operations now has `/admin/growth` for explainable patient-journey recovery, partner lead prioritization, Care Navigator engagement signals, conversion funnels and campaign attribution. Scores are operational signals rather than medical triage or conversion probabilities. Hospital commercials, affiliate payout size and clinical severity are excluded, and all follow-up remains manual. See `PHASE8C_SETUP.md`.
+
+## Phase 8D — Revenue & Business Intelligence
+CareAtlas admins now have `/admin/business-intelligence` plus an admin-only case-finance record on each case. The dashboard reports recorded revenue, net contribution, hospital conversion, affiliate ROI, Stay Network economics, destination/treatment profitability and finance data-quality gaps one currency at a time. Financial data is isolated from patients/providers and never influences AI hospital matching or patient prioritization. See `PHASE8D_SETUP.md`.

@@ -12,6 +12,7 @@ import './phase7g.css';
 import './phase8a.css';
 import './phase8b.css';
 import './phase8c.css';
+import './phase8d.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/components/AuthProvider';

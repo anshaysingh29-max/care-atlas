@@ -6,6 +6,7 @@ import { ArrowLeft, Bot, Building2, FileText, Globe2, HeartHandshake, LoaderCirc
 import AdminShell from '@/components/AdminShell';
 import AdminCaseMessagingPanel from '@/components/AdminCaseMessagingPanel';
 import AdminCaseCopilotPanel from '@/components/AdminCaseCopilotPanel';
+import AdminCaseFinancePanel from '@/components/AdminCaseFinancePanel';
 import { useAuth } from '@/components/AuthProvider';
 import { hospitals } from '@/lib/data';
 import { getPublishedHospitals } from '@/lib/firebase/marketplace';
@@ -18,7 +19,8 @@ import {
   getAdminCaseDocuments,
   getAdminCaseConsentState,
   stageLabel,
-  updateAdminCaseOperations
+  updateAdminCaseOperations,
+  isAdminRole
 } from '@/lib/firebase/admin';
 
 export default function AdminCaseDetailClient() {
@@ -161,6 +163,8 @@ export default function AdminCaseDetailClient() {
                 {providerRows.map(hospital => <label key={hospital.slug} className={form.assignedHospitalIds.includes(hospital.slug) ? 'selected' : ''}><input type="checkbox" checked={form.assignedHospitalIds.includes(hospital.slug)} onChange={() => toggleHospital(hospital.slug)}/><Building2 size={16}/><span><strong>{hospital.name}</strong><small>{hospital.city}, {hospital.country}</small></span></label>)}
               </div>
             </section>
+
+            {isAdminRole(userProfile?.role) && <AdminCaseFinancePanel record={record} providerRows={providerRows}/>}
 
             <section className="portal-card">
               <span className="eyebrow">PATIENT CONTACT</span>

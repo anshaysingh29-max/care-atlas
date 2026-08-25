@@ -1104,6 +1104,11 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
+    match /caseFinancials/{caseId} {
+      // Canonical CareAtlas case economics. Never exposed to patients, providers or affiliates.
+      allow read, create, update, delete: if isAdmin();
+    }
+
     match /hospitalTeamInvites/{inviteId} {
       allow create: if signedIn()
         && currentUser().data.role == 'hospital_admin'

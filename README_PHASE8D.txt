@@ -1,0 +1,1 @@
+CareAtlas Phase 8D adds admin-only case finance plus Revenue & Business Intelligence across hospitals, affiliates, stays, destinations and treatment lines. Deploy the updated Firestore rules before testing. See PHASE8D_SETUP.md.
