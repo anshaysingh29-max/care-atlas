@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, Files, FolderHeart, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, UserCheck } from 'lucide-react';
+import { BadgeIndianRupee, FileText, Files, FolderHeart, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, UserCheck } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import PatientNotificationBell from '@/components/PatientNotificationBell';
 import { USER_ROLES } from '@/lib/firebase/roles';
@@ -14,7 +14,8 @@ const items = [
   ['/patient/treatment-plans', 'Treatment Plans', FileText],
   ['/patient/documents', 'Documents', Files],
   ['/patient/messages', 'Messages', MessageCircle],
-  ['/patient/consents', 'Consent & Privacy', UserCheck]
+  ['/patient/consents', 'Consent & Privacy', UserCheck],
+  ['/patient/affiliate', 'Earn with CareAtlas', BadgeIndianRupee]
 ];
 
 function initials(name, email) {

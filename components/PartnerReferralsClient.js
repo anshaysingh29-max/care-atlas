@@ -1,7 +1,33 @@
 'use client';
-import { useEffect,useMemo,useState } from 'react';
-import { Search, ShieldCheck } from 'lucide-react';
-import PartnerShell from '@/components/PartnerShell';
-import { formatPartnerDate,getPartnerReferrals } from '@/lib/firebase/partners';
 
-export default function PartnerReferralsClient(){const[rows,setRows]=useState([]);const[error,setError]=useState('');const[search,setSearch]=useState('');useEffect(()=>{getPartnerReferrals().then(setRows).catch(e=>setError(e.message));},[]);const filtered=useMemo(()=>rows.filter(r=>`${r.patientAlias} ${r.caseNumber} ${r.treatmentName} ${r.patientCountry}`.toLowerCase().includes(search.toLowerCase())),[rows,search]);return <PartnerShell title="Referrals" subtitle="Follow commercial journey milestones while CareAtlas keeps clinical records private."><div className="phase7a-privacy-strip"><ShieldCheck size={18}/><div><strong>Minimum necessary partner data</strong><span>No diagnosis notes, medical files, direct patient contact details or hospital clinical documents are exposed here.</span></div></div>{error&&<div className="document-alert error">{error}</div>}<div className="admin-filter-bar"><div><Search size={15}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search referral, case or treatment"/></div></div><section className="portal-card phase7a-table"><div className="phase7a-referral-row head"><span>Referral</span><span>Treatment</span><span>Journey</span><span>Referral status</span><span>Commission</span><span>Updated</span></div>{filtered.map(r=><div className="phase7a-referral-row" key={r.id}><span><strong>{r.patientAlias}</strong><small>{r.caseNumber} · {r.patientCountry}</small></span><span>{r.treatmentName}</span><span>{String(r.currentStage||'case_submitted').replaceAll('_',' ')}</span><span><i>{String(r.referralStatus||'case_created').replaceAll('_',' ')}</i></span><span>{String(r.commissionStatus||'not_created').replaceAll('_',' ')}</span><span>{formatPartnerDate(r.updatedAt)}</span></div>)}{!filtered.length&&<p className="phase7a-empty">No referrals found.</p>}</section></PartnerShell>}
+import { useEffect, useState } from 'react';
+import { ShieldAlert } from 'lucide-react';
+import PartnerShell from '@/components/PartnerShell';
+import { getPartnerReferrals } from '@/lib/firebase/partners';
+
+function status(value) {
+  return String(value || 'case_created').replaceAll('_',' ');
+}
+
+export default function PartnerReferralsClient() {
+  const [rows,setRows]=useState([]);
+  const [error,setError]=useState('');
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{getPartnerReferrals().then(setRows).catch(e=>setError(e.message)).finally(()=>setLoading(false));},[]);
+
+  return <PartnerShell title="Referrals" subtitle="Follow attributed cases using privacy-safe aliases, campaign tags and commercial status only.">
+    {error&&<div className="document-alert error">{error}</div>}
+    <div className="permission-banner phase7b-referral-privacy"><ShieldAlert size={18}/><div><strong>No clinical access</strong><span>Partners see referral progress and commercial status, not medical reports, diagnosis details or hospital clinical notes.</span></div></div>
+    <section className="portal-card phase7b-referral-table">
+      <div className="phase7b-referral-row head"><span>Patient</span><span>Treatment</span><span>Campaign</span><span>Stage</span><span>Commission</span></div>
+      {loading?<div className="phase7a-loading">Loading referrals…</div>:rows.length===0?<p className="phase7a-empty">No attributed cases yet.</p>:rows.map(item=><div className={`phase7b-referral-row ${item.selfReferral?'flagged':''}`} key={item.id}>
+        <span><strong>{item.patientAlias}</strong><small>{item.caseNumber}</small></span>
+        <span>{item.treatmentName}<small>{item.patientCountry}</small></span>
+        <span>{item.campaign || 'general'}</span>
+        <span><b>{item.selfReferral?'Self-referral · ineligible':status(item.referralStatus)}</b></span>
+        <span>{item.selfReferral?'Blocked':status(item.commissionStatus)}</span>
+      </div>)}
+    </section>
+  </PartnerShell>;
+}

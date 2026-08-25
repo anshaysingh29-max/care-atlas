@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Circle, Clock3, FileText, Hospital, Plane, ShieldCheck, Stethoscope, UserRound } from 'lucide-react';
+import { ArrowRight, BadgeIndianRupee, CheckCircle2, Circle, Clock3, FileText, Hospital, Plane, ShieldCheck, Stethoscope, UserRound } from 'lucide-react';
 import PatientShell from '@/components/PatientShell';
 import { useAuth } from '@/components/AuthProvider';
 import { getPatientCases } from '@/lib/firebase/cases';
@@ -37,7 +37,7 @@ function destinationNames(slugs = []) {
 }
 
 export default function PatientDashboardClient() {
-  const { user, patientProfile } = useAuth();
+  const { user, patientProfile, partnerProfile } = useAuth();
   const [cases, setCases] = useState([]);
   const [loadingCases, setLoadingCases] = useState(true);
   const [caseError, setCaseError] = useState('');
@@ -128,7 +128,7 @@ export default function PatientDashboardClient() {
             <ShieldCheck size={28}/>
             <h3>{stageLabel}</h3>
             <p>{activeCase.currentStage === 'case_submitted'
-              ? 'Your case has been received. The CareAtlas operations workflow will be connected in Phase 6D.'
+              ? 'Your case has been received and is waiting for the CareAtlas operations team to progress it.'
               : 'Your case progress is being tracked in Firestore.'}</p>
             <Link href="/patient/cases" className="link-arrow">View case details <ArrowRight size={17}/></Link>
           </section>
@@ -144,8 +144,20 @@ export default function PatientDashboardClient() {
             <span className="eyebrow">MEDICAL DOCUMENTS</span>
             <FileText size={24}/>
             <h3>{activeCase.documentCount || 0} documents</h3>
-            <p>Google Drive document storage and patient-wise folders are intentionally scheduled for Phase 6C.</p>
+            <p>Your medical-document area uses the consent-aware private Google Drive gateway.</p>
             <Link href="/patient/documents" className="link-arrow">Open documents area <ArrowRight size={17}/></Link>
+          </section>
+
+          <section className="portal-card phase7b-patient-earn-card">
+            <span className="eyebrow">EARN WITH CAREATLAS</span>
+            <BadgeIndianRupee size={26}/>
+            <h3>{partnerProfile?.status === 'approved' ? 'Your Partner account is active.' : partnerProfile ? 'Partner application in review.' : 'Refer patients and earn.'}</h3>
+            <p>{partnerProfile?.status === 'approved'
+              ? `Your approved revenue share is ${partnerProfile.commissionRatePct || 0}% of eligible CareAtlas revenue on verified referrals.`
+              : partnerProfile
+                ? 'Your patient account stays fully active while CareAtlas reviews your referral-partner application.'
+                : 'You can use this same patient login to apply as a CareAtlas referral partner. No second account is required.'}</p>
+            <Link href="/patient/affiliate" className="link-arrow">{partnerProfile?.status === 'approved' ? 'Partner access' : 'Learn & apply'} <ArrowRight size={17}/></Link>
           </section>
         </div>
       </div>

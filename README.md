@@ -56,3 +56,7 @@ CareAtlas is still an application MVP, not a regulatory certification. Before co
 
 ## Phase 7A — CareAtlas Partner Network
 Referral-partner signup/approval, 60-day first-valid attribution, partner dashboards, commission ledger, admin approval and manual payout tracking are included. See `PHASE7A_SETUP.md`. Partners cannot access medical records.
+
+
+## Phase 7B — Patient affiliates & growth tools
+Patients can now keep their patient role and apply for a second referral-partner profile under the same Firebase UID. Phase 7B also adds warm leads, campaign-tagged referral links, partner levels, funnel reporting and self-referral commission blocking. See `PHASE7B_SETUP.md`.

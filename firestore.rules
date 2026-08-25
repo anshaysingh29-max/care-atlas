@@ -31,11 +31,16 @@ service cloud.firestore {
       ];
     }
 
-    function isReferralPartner() {
+    function hasReferralPartnerProfile() {
       return hasUserProfile()
-        && currentUser().data.role == 'partner'
+        && currentUser().data.role in ['partner', 'patient']
         && currentUser().data.status != 'disabled'
         && exists(/databases/$(database)/documents/partners/$(request.auth.uid))
+        && !(get(/databases/$(database)/documents/partners/$(request.auth.uid)).data.status in ['rejected', 'suspended']);
+    }
+
+    function isReferralPartner() {
+      return hasReferralPartnerProfile()
         && get(/databases/$(database)/documents/partners/$(request.auth.uid)).data.status == 'approved';
     }
 
@@ -276,7 +281,13 @@ service cloud.firestore {
     match /partners/{partnerId} {
       allow create: if signedIn()
         && request.auth.uid == partnerId
-        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'partner'
+        && (
+          getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'partner' ||
+          (
+            getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient' &&
+            exists(/databases/$(database)/documents/patients/$(request.auth.uid))
+          )
+        )
         && request.resource.data.partnerId == request.auth.uid
         && request.resource.data.status == 'pending_review'
         && request.resource.data.commissionModel == 'revenue_share'
@@ -312,6 +323,47 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /partnerLeads/{leadId} {
+      allow create: if isReferralPartner()
+        && request.resource.data.partnerId == request.auth.uid
+        && request.resource.data.firstName is string
+        && request.resource.data.firstName.size() > 0
+        && request.resource.data.firstName.size() <= 80
+        && request.resource.data.country is string
+        && request.resource.data.country.size() <= 80
+        && request.resource.data.treatmentInterest is string
+        && request.resource.data.treatmentInterest.size() <= 120
+        && request.resource.data.contactMethod in ['phone', 'whatsapp', 'email']
+        && request.resource.data.contactValue is string
+        && request.resource.data.contactValue.size() > 0
+        && request.resource.data.contactValue.size() <= 160
+        && request.resource.data.contactConsent == true
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 500
+        && request.resource.data.campaign is string
+        && request.resource.data.campaign.size() <= 48
+        && request.resource.data.status == 'new'
+        && request.resource.data.source == 'partner_web'
+        && request.resource.data.convertedCaseId == null
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        isCareAtlasStaff() ||
+        (hasReferralPartnerProfile() && resource.data.partnerId == request.auth.uid)
+      );
+
+      allow update: if isCareAtlasStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'convertedCaseId', 'updatedAt'
+        ])
+        && request.resource.data.status in ['new', 'contacted', 'qualified', 'converted', 'closed']
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+
     match /referrals/{referralId} {
       function requestedReferralCase() {
         return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
@@ -337,12 +389,15 @@ service cloud.firestore {
         && request.resource.data.commissionStatus == 'not_created'
         && request.resource.data.attributionModel == 'first_valid_referrer'
         && request.resource.data.attributionWindowDays == 60
+        && request.resource.data.campaign is string
+        && request.resource.data.campaign.size() <= 48
+        && request.resource.data.selfReferral is bool
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time;
 
       allow read: if signedIn() && (
         isCareAtlasStaff() ||
-        (isReferralPartner() && resource.data.partnerId == request.auth.uid)
+        (hasReferralPartnerProfile() && resource.data.partnerId == request.auth.uid)
       );
 
       allow update: if isCareAtlasStaff()
@@ -368,7 +423,7 @@ service cloud.firestore {
 
       allow read: if signedIn() && (
         isAdmin() ||
-        (isReferralPartner() && resource.data.partnerId == request.auth.uid)
+        (hasReferralPartnerProfile() && resource.data.partnerId == request.auth.uid)
       );
 
       allow create: if isAdmin()
@@ -376,6 +431,7 @@ service cloud.firestore {
         && request.resource.data.referralId == commissionId
         && request.resource.data.partnerId == requestedCommissionReferral().data.partnerId
         && requestedCommissionReferral().data.referralStatus == 'treatment_verified'
+        && requestedCommissionReferral().data.get('selfReferral', false) == false
         && request.resource.data.status == 'pending'
         && request.resource.data.commissionModel == 'revenue_share'
         && request.resource.data.ratePct is number

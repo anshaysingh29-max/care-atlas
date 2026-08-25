@@ -3,6 +3,7 @@ import './phase6d.css';
 import './phase6e.css';
 import './phase6f.css';
 import './phase7a.css';
+import './phase7b.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/components/AuthProvider';
