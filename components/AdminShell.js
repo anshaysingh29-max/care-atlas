@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, BadgeIndianRupee, BedDouble, Bot, Building2, CalendarDays, ClipboardList, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, Plane, ReceiptText, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
+import { Activity, BadgeIndianRupee, BedDouble, Bot, BrainCircuit, Building2, CalendarDays, ClipboardList, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, Plane, ReceiptText, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminRole, isCareAtlasStaffRole } from '@/lib/firebase/admin';
 
 const baseItems = [
   ['/admin', 'Overview', LayoutDashboard],
   ['/admin/cases', 'Cases', ClipboardList],
+  ['/admin/copilot', 'Coordinator Copilot', BrainCircuit],
   ['/admin/patients', 'Patients', UsersRound],
   ['/admin/hospitals', 'Hospitals', Building2],
   ['/admin/doctors', 'Doctors', Stethoscope],

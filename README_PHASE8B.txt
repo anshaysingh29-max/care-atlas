@@ -1,0 +1,1 @@
+Phase 8B adds the CareAtlas Coordinator Copilot: a human-reviewed, explainable operations queue and case assistant with blocker detection, next-action suggestions, readiness checks and editable patient-message drafts. It does not diagnose, assign providers or send messages automatically.

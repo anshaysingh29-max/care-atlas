@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Bot, Building2, FileText, Globe2, HeartHandshake, LoaderCircle, Mail, Phone, Save, ShieldCheck, Stethoscope } from 'lucide-react';
 import AdminShell from '@/components/AdminShell';
 import AdminCaseMessagingPanel from '@/components/AdminCaseMessagingPanel';
+import AdminCaseCopilotPanel from '@/components/AdminCaseCopilotPanel';
 import { useAuth } from '@/components/AuthProvider';
 import { hospitals } from '@/lib/data';
 import { getPublishedHospitals } from '@/lib/firebase/marketplace';
@@ -32,6 +33,7 @@ export default function AdminCaseDetailClient() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [copilotDraft, setCopilotDraft] = useState(null);
 
   const selectedCoordinator = useMemo(() => COORDINATORS.find(item => item.id === form.coordinatorId) || null, [form.coordinatorId]);
 
@@ -139,7 +141,9 @@ export default function AdminCaseDetailClient() {
               <div className="case-narrative"><strong>Diagnosis / request</strong><p>{record.diagnosis || 'No diagnosis text was supplied.'}</p><strong>Urgency</strong><p>{record.urgency || 'Not set'}</p><strong>Uploaded documents</strong><div className="admin-doc-list">{documents.length ? documents.map(item => <span key={item.id}><FileText size={14}/> {item.name} <i>{item.category || 'Medical report'}</i></span>) : <span><FileText size={14}/> No documents uploaded yet.</span>}</div></div>
             </section>
 
-            <AdminCaseMessagingPanel caseId={caseId}/>
+            <AdminCaseCopilotPanel caseId={caseId} onUseDraft={text => setCopilotDraft({ text, token: Date.now() })}/>
+
+            <AdminCaseMessagingPanel caseId={caseId} suggestedDraft={copilotDraft}/>
           </div>
 
           <aside className="admin-case-column">

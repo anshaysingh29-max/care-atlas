@@ -79,3 +79,6 @@ Hospital self-registration now feeds an admin verification workflow. Approved sp
 
 ## Phase 8A — AI Care Navigator
 CareAtlas now includes an explainable Care Navigator at `/care-navigator` and `/patient/concierge`. It ranks only live, published CareAtlas hospital partners using approved specialty capability and user-selected journey preferences. Hospital commercials and affiliate economics are excluded from ranking. Patient-saved shortlists are auditable in `/admin/ai-matching` and never auto-assign a provider.
+
+## Phase 8B — Coordinator Copilot
+CareAtlas operations now has `/admin/copilot` plus a case-level Copilot panel. It calculates live operational priority, identifies workflow blockers, suggests next actions, checks journey readiness and can place a patient-safe draft into the existing message composer for human review. It does not make clinical decisions, auto-assign hospitals or auto-send communications. See `PHASE8B_SETUP.md`.
