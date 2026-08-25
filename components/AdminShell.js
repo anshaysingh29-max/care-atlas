@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, BadgeIndianRupee, Building2, ClipboardList, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, ReceiptText, ShieldCheck, Stethoscope, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
+import { Activity, BadgeIndianRupee, BedDouble, Building2, CalendarDays, ClipboardList, FileCheck2, Handshake, HeartHandshake, History, IdCard, LayoutDashboard, LogOut, MapPinned, ReceiptText, ShieldCheck, Stethoscope, UserCog, UserRoundPlus, UsersRound } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminRole, isCareAtlasStaffRole } from '@/lib/firebase/admin';
 
@@ -16,6 +16,7 @@ const baseItems = [
   ['/admin/treatment-plans', 'Treatment Plans', FileCheck2],
   ['/admin/coordinators', 'Coordinators', HeartHandshake],
   ['/admin/partner-leads', 'Partner Leads', UserRoundPlus],
+  ['/admin/hotel-bookings', 'Hotel Bookings', CalendarDays],
   ['/admin/referrals', 'Referrals', UsersRound],
   ['/admin/content', 'Content', MapPinned],
   ['/admin/analytics', 'Analytics', Activity]
@@ -26,7 +27,7 @@ export default function AdminShell({ children, title, subtitle, action }) {
   const router = useRouter();
   const { user, userProfile, loading, logout } = useAuth();
   const permitted = Boolean(user && userProfile && isCareAtlasStaffRole(userProfile.role));
-  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/partners', 'Partners', Handshake], ['/admin/partner-kyc', 'Partner KYC', IdCard], ['/admin/commissions', 'Commissions', BadgeIndianRupee], ['/admin/payouts', 'Payouts', ReceiptText], ['/admin/audit', 'Audit Trail', History]] : baseItems;
+  const items = isAdminRole(userProfile?.role) ? [...baseItems, ['/admin/hotels', 'Stay Partners', BedDouble], ['/admin/partners', 'Partners', Handshake], ['/admin/partner-kyc', 'Partner KYC', IdCard], ['/admin/commissions', 'Commissions', BadgeIndianRupee], ['/admin/payouts', 'Payouts', ReceiptText], ['/admin/audit', 'Audit Trail', History]] : baseItems;
 
   useEffect(() => {
     if (loading) return;

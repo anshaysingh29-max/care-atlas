@@ -8,40 +8,60 @@ import { initializeCareAtlasAppCheck } from '@/lib/firebase/appCheck';
 
 const AuthContext = createContext(null);
 
+async function loadProfiles(authUser) {
+  const db = getFirebaseDb();
+  const [userSnapshot, patientSnapshot, partnerSnapshot, hotelSnapshot] = await Promise.all([
+    getDoc(doc(db, 'users', authUser.uid)),
+    getDoc(doc(db, 'patients', authUser.uid)),
+    getDoc(doc(db, 'partners', authUser.uid)),
+    getDoc(doc(db, 'hotels', authUser.uid))
+  ]);
+  return {
+    userProfile: userSnapshot.exists() ? { id: userSnapshot.id, ...userSnapshot.data() } : null,
+    patientProfile: patientSnapshot.exists() ? { id: patientSnapshot.id, ...patientSnapshot.data() } : null,
+    partnerProfile: partnerSnapshot.exists() ? { id: partnerSnapshot.id, ...partnerSnapshot.data() } : null,
+    hotelProfile: hotelSnapshot.exists() ? { id: hotelSnapshot.id, ...hotelSnapshot.data() } : null
+  };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [patientProfile, setPatientProfile] = useState(null);
   const [partnerProfile, setPartnerProfile] = useState(null);
+  const [hotelProfile, setHotelProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const clearProfiles = useCallback(() => {
+    setUserProfile(null);
+    setPatientProfile(null);
+    setPartnerProfile(null);
+    setHotelProfile(null);
+  }, []);
+
+  const applyProfiles = useCallback(profiles => {
+    setUserProfile(profiles.userProfile);
+    setPatientProfile(profiles.patientProfile);
+    setPartnerProfile(profiles.partnerProfile);
+    setHotelProfile(profiles.hotelProfile);
+  }, []);
 
   const refreshProfile = useCallback(async (targetUser) => {
     const authUser = targetUser || user;
     if (!authUser || !isFirebaseConfigured) {
-      setUserProfile(null);
-      setPatientProfile(null);
-      setPartnerProfile(null);
+      clearProfiles();
       return;
     }
 
     try {
-      const db = getFirebaseDb();
-      const [userSnapshot, patientSnapshot, partnerSnapshot] = await Promise.all([
-        getDoc(doc(db, 'users', authUser.uid)),
-        getDoc(doc(db, 'patients', authUser.uid)),
-        getDoc(doc(db, 'partners', authUser.uid))
-      ]);
-
-      setUserProfile(userSnapshot.exists() ? { id: userSnapshot.id, ...userSnapshot.data() } : null);
-      setPatientProfile(patientSnapshot.exists() ? { id: patientSnapshot.id, ...patientSnapshot.data() } : null);
-      setPartnerProfile(partnerSnapshot.exists() ? { id: partnerSnapshot.id, ...partnerSnapshot.data() } : null);
+      applyProfiles(await loadProfiles(authUser));
       setError('');
     } catch (profileError) {
       console.error('Unable to load CareAtlas profile', profileError);
       setError('We could not load your CareAtlas profile. Please refresh and try again.');
     }
-  }, [user]);
+  }, [user, clearProfiles, applyProfiles]);
 
   useEffect(() => {
     try {
@@ -62,26 +82,16 @@ export function AuthProvider({ children }) {
       setUser(authUser || null);
 
       if (!authUser) {
-        setUserProfile(null);
-        setPatientProfile(null);
-        setPartnerProfile(null);
+        clearProfiles();
         setLoading(false);
         setError('');
         return;
       }
 
       try {
-        const db = getFirebaseDb();
-        const [userSnapshot, patientSnapshot, partnerSnapshot] = await Promise.all([
-          getDoc(doc(db, 'users', authUser.uid)),
-          getDoc(doc(db, 'patients', authUser.uid)),
-          getDoc(doc(db, 'partners', authUser.uid))
-        ]);
-
+        const profiles = await loadProfiles(authUser);
         if (!active) return;
-        setUserProfile(userSnapshot.exists() ? { id: userSnapshot.id, ...userSnapshot.data() } : null);
-        setPatientProfile(patientSnapshot.exists() ? { id: patientSnapshot.id, ...patientSnapshot.data() } : null);
-        setPartnerProfile(partnerSnapshot.exists() ? { id: partnerSnapshot.id, ...partnerSnapshot.data() } : null);
+        applyProfiles(profiles);
         setError('');
       } catch (profileError) {
         console.error('Unable to load CareAtlas profile', profileError);
@@ -95,35 +105,32 @@ export function AuthProvider({ children }) {
       active = false;
       unsubscribe?.();
     };
-  }, []);
+  }, [clearProfiles, applyProfiles]);
 
   const logout = useCallback(async () => {
     await signOutCurrentUser();
     setUser(null);
-    setUserProfile(null);
-    setPatientProfile(null);
-    setPartnerProfile(null);
-  }, []);
+    clearProfiles();
+  }, [clearProfiles]);
 
   const value = useMemo(() => ({
     user,
     userProfile,
     patientProfile,
     partnerProfile,
+    hotelProfile,
     loading,
     error,
     firebaseConfigured: isFirebaseConfigured,
     refreshProfile,
     logout
-  }), [user, userProfile, patientProfile, partnerProfile, loading, error, refreshProfile, logout]);
+  }), [user, userProfile, patientProfile, partnerProfile, hotelProfile, loading, error, refreshProfile, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used inside AuthProvider.');
-  }
+  if (!context) throw new Error('useAuth must be used inside AuthProvider.');
   return context;
 }

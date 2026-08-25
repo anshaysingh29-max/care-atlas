@@ -54,6 +54,25 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/partnerPayoutProfiles/$(partnerId)).data.status == 'verified';
     }
 
+
+    function isHotelPartner() {
+      return hasUserProfile()
+        && currentUser().data.role == 'hotel_partner'
+        && currentUser().data.status != 'disabled'
+        && exists(/databases/$(database)/documents/hotels/$(request.auth.uid))
+        && !(get(/databases/$(database)/documents/hotels/$(request.auth.uid)).data.status in ['rejected', 'suspended']);
+    }
+
+    function hotelPartnerApproved() {
+      return isHotelPartner()
+        && get(/databases/$(database)/documents/hotels/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    function stayHotelApproved(stayHotelId) {
+      return exists(/databases/$(database)/documents/hotels/$(stayHotelId))
+        && get(/databases/$(database)/documents/hotels/$(stayHotelId)).data.status == 'approved';
+    }
+
     function isHospitalUser() {
       return hasUserProfile() && currentUser().data.role in [
         'hospital_admin',
@@ -111,7 +130,11 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'active'
-        && request.resource.data.role in ['patient', 'partner'];
+        && request.resource.data.role in ['patient', 'partner', 'hotel_partner']
+        && (
+          request.resource.data.role != 'hotel_partner' ||
+          request.resource.data.hotelId == request.auth.uid
+        );
 
       allow read: if signedIn() && (
         request.auth.uid == userId ||
@@ -644,6 +667,167 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    match /hotels/{hotelId} {
+      allow get: if (
+        (signedIn() && request.auth.uid == hotelId) ||
+        isCareAtlasStaff() ||
+        resource.data.status == 'approved'
+      );
+
+      allow list: if isCareAtlasStaff() || resource.data.status == 'approved';
+
+      allow create: if signedIn()
+        && request.auth.uid == hotelId
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'hotel_partner'
+        && request.resource.data.hotelId == hotelId
+        && request.resource.data.ownerUserId == request.auth.uid
+        && request.resource.data.status == 'pending_review'
+        && request.resource.data.commissionModel == 'booking_revenue_share'
+        && request.resource.data.commissionRatePct == 0
+        && request.resource.data.termsAccepted == true
+        && request.resource.data.termsVersion == '2026-08-25-v1'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isHotelPartner()
+        && request.auth.uid == hotelId
+        && resource.data.ownerUserId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'propertyName', 'propertyType', 'country', 'city',
+          'addressLine1', 'addressLine2', 'postalCode',
+          'contactName', 'contactPhone', 'website', 'description',
+          'totalRooms', 'starRating', 'amenities', 'medicalStayFeatures',
+          'mealOptions', 'photoUrls', 'nearbyHospitalIdsRequested', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow update, delete: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /hotelRooms/{roomId} {
+      allow read: if (
+        isCareAtlasStaff() ||
+        (isHotelPartner() && resource.data.hotelId == request.auth.uid) ||
+        stayHotelApproved(resource.data.hotelId)
+      );
+
+      allow create: if hotelPartnerApproved()
+        && request.resource.data.roomId == roomId
+        && request.resource.data.hotelId == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.active == true
+        && request.resource.data.nightlyRate is number
+        && request.resource.data.nightlyRate > 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if hotelPartnerApproved()
+        && resource.data.hotelId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'roomType', 'bedType', 'maxGuests', 'roomsAvailable',
+          'nightlyRate', 'currency', 'taxesIncluded', 'features', 'active', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow update, delete: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /hotelAvailability/{availabilityId} {
+      allow read: if (
+        isCareAtlasStaff() ||
+        (isHotelPartner() && resource.data.hotelId == request.auth.uid) ||
+        stayHotelApproved(resource.data.hotelId)
+      );
+
+      allow create: if hotelPartnerApproved()
+        && request.resource.data.availabilityId == availabilityId
+        && request.resource.data.hotelId == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid
+        && get(/databases/$(database)/documents/hotelRooms/$(request.resource.data.roomId)).data.hotelId == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if hotelPartnerApproved()
+        && resource.data.hotelId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'roomId', 'startDate', 'endDate', 'availableRooms',
+          'nightlyRateOverride', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow update, delete: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /hotelBookings/{bookingId} {
+      function requestedStayCase() {
+        return get(/databases/$(database)/documents/cases/$(request.resource.data.caseId));
+      }
+
+      function requestedStayHotel() {
+        return get(/databases/$(database)/documents/hotels/$(request.resource.data.hotelId));
+      }
+
+      function requestedStayRoom() {
+        return get(/databases/$(database)/documents/hotelRooms/$(request.resource.data.roomId));
+      }
+
+      allow create: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.resource.data.bookingId == bookingId
+        && request.resource.data.patientId == request.auth.uid
+        && requestedStayCase().data.patientId == request.auth.uid
+        && requestedStayHotel().data.status == 'approved'
+        && requestedStayRoom().data.hotelId == request.resource.data.hotelId
+        && requestedStayRoom().data.active == true
+        && request.resource.data.status == 'requested'
+        && request.resource.data.settlementStatus == 'not_applicable'
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.requestedAt == request.time
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff() ||
+        (isHotelPartner() && resource.data.hotelId == request.auth.uid)
+      );
+
+      allow update: if signedIn()
+        && resource.data.patientId == request.auth.uid
+        && resource.data.status in ['requested', 'quoted']
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'cancelledAt', 'updatedAt'
+        ])
+        && request.resource.data.cancelledAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if hotelPartnerApproved()
+        && resource.data.hotelId == request.auth.uid
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.caseId == resource.data.caseId
+        && request.resource.data.hotelId == resource.data.hotelId
+        && request.resource.data.roomId == resource.data.roomId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'quotedNightlyRate', 'taxesAndFees', 'totalAmount',
+          'careAtlasCommissionRatePct', 'careAtlasCommissionAmount',
+          'hotelNote', 'updatedAt', 'quotedAt', 'confirmedAt',
+          'checkedInAt', 'completedAt', 'closedAt', 'settlementStatus'
+        ])
+        && request.resource.data.status in [
+          'quoted', 'confirmed', 'checked_in', 'completed', 'declined', 'cancelled'
+        ]
+        && request.resource.data.settlementStatus in ['not_applicable', 'pending']
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isCareAtlasStaff();
+      allow delete: if isAdmin();
+    }
+
     match /hospitals/{hospitalDocId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
@@ -854,6 +1038,15 @@ service cloud.firestore {
         && request.resource.data.hospitalId == hospitalId()
         && request.resource.data.action is string
         && request.resource.data.source == 'hospital_web'
+        && request.resource.data.createdAt == request.time;
+
+
+      allow create: if isHotelPartner()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.actorRole == 'hotel_partner'
+        && request.resource.data.hotelId == request.auth.uid
+        && request.resource.data.action is string
+        && request.resource.data.source == 'hotel_web'
         && request.resource.data.createdAt == request.time;
 
       allow update, delete: if false;
