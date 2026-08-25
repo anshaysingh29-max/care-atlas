@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Building2, FileText, Globe2, HeartHandshake, LoaderCircle, Mail, Phone, Save, ShieldCheck, Stethoscope } from 'lucide-react';
+import { ArrowLeft, Bot, Building2, FileText, Globe2, HeartHandshake, LoaderCircle, Mail, Phone, Save, ShieldCheck, Stethoscope } from 'lucide-react';
 import AdminShell from '@/components/AdminShell';
 import AdminCaseMessagingPanel from '@/components/AdminCaseMessagingPanel';
 import { useAuth } from '@/components/AuthProvider';
 import { hospitals } from '@/lib/data';
+import { getPublishedHospitals } from '@/lib/firebase/marketplace';
 import {
   CASE_STAGES,
   CASE_STATUSES,
@@ -25,6 +26,7 @@ export default function AdminCaseDetailClient() {
   const [record, setRecord] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [consentState, setConsentState] = useState(null);
+  const [liveHospitals, setLiveHospitals] = useState([]);
   const [form, setForm] = useState({ currentStage: 'case_submitted', status: 'submitted', coordinatorId: '', assignedHospitalIds: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,14 +39,16 @@ export default function AdminCaseDetailClient() {
     setLoading(true);
     setError('');
     try {
-      const [caseRecord, docs, consent] = await Promise.all([
+      const [caseRecord, docs, consent, publishedHospitals] = await Promise.all([
         getAdminCase(targetId),
         getAdminCaseDocuments(targetId),
-        getAdminCaseConsentState(targetId)
+        getAdminCaseConsentState(targetId),
+        getPublishedHospitals()
       ]);
       setRecord(caseRecord);
       setDocuments(docs);
       setConsentState(consent);
+      setLiveHospitals(publishedHospitals);
       setForm({
         currentStage: caseRecord.currentStage || 'case_submitted',
         status: caseRecord.status || 'submitted',
@@ -101,6 +105,9 @@ export default function AdminCaseDetailClient() {
     }
   }
 
+  const liveProviderRows = liveHospitals.map(item => ({ ...item, slug: item.id || item.hospitalId }));
+  const providerRows = [...liveProviderRows, ...hospitals.filter(item => !liveProviderRows.some(live => live.slug === item.slug))];
+
   const action = <Link href="/admin/cases" className="text-button"><ArrowLeft size={15}/> Back to cases</Link>;
 
   return (
@@ -136,12 +143,18 @@ export default function AdminCaseDetailClient() {
           </div>
 
           <aside className="admin-case-column">
+            {(record.careNavigatorContext || (record.patientPreferredHospitalIds || []).length > 0) && <section className="portal-card phase8a-admin-case-context">
+              <div className="portal-card-heading"><div><span className="eyebrow">PATIENT AI SHORTLIST</span><h2>Care Navigator context.</h2></div><Bot size={21}/></div>
+              <p className="admin-small-note">This is a patient preference from the explainable Care Navigator. It does not assign a provider and should be reviewed by CareAtlas operations.</p>
+              <div className="phase8a-admin-case-context-grid"><span><small>Specialty</small><strong>{record.careNavigatorContext?.specialtyId || '—'}</strong></span><span><small>Algorithm</small><strong>{record.careNavigatorContext?.algorithmVersion || '—'}</strong></span></div>
+              {(record.patientPreferredHospitalIds || []).map(id => <div key={id} className="phase8a-admin-preferred-provider"><Building2 size={15}/><span>{providerRows.find(h => h.slug === id)?.name || id}</span></div>)}
+            </section>}
             <section className="portal-card">
               <span className="eyebrow">HOSPITAL MATCHING</span>
               <h2>{form.assignedHospitalIds.length} provider{form.assignedHospitalIds.length === 1 ? '' : 's'} assigned.</h2>
-              <p className="admin-small-note">These are the current demo catalogue provider IDs. Hospital access is live and document access is additionally controlled by the patient’s recorded sharing consent.</p>
+              <p className="admin-small-note">Published CareAtlas partner IDs are used when live inventory is available. Hospital access is live and document access is additionally controlled by the patient’s recorded sharing consent.</p>
               <div className="phase6d-hospital-picker">
-                {hospitals.map(hospital => <label key={hospital.slug} className={form.assignedHospitalIds.includes(hospital.slug) ? 'selected' : ''}><input type="checkbox" checked={form.assignedHospitalIds.includes(hospital.slug)} onChange={() => toggleHospital(hospital.slug)}/><Building2 size={16}/><span><strong>{hospital.name}</strong><small>{hospital.city}, {hospital.country}</small></span></label>)}
+                {providerRows.map(hospital => <label key={hospital.slug} className={form.assignedHospitalIds.includes(hospital.slug) ? 'selected' : ''}><input type="checkbox" checked={form.assignedHospitalIds.includes(hospital.slug)} onChange={() => toggleHospital(hospital.slug)}/><Building2 size={16}/><span><strong>{hospital.name}</strong><small>{hospital.city}, {hospital.country}</small></span></label>)}
               </div>
             </section>
 

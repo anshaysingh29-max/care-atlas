@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check, FileText, FileUp, Globe2, ShieldCheck, Trash2, UserRound } from 'lucide-react';
 import { destinations, treatments } from '@/lib/data';
 import { useAuth } from '@/components/AuthProvider';
@@ -22,7 +22,8 @@ const initialForm = {
   name: '', age: '', gender: '', country: '', phone: '', email: '', language: 'English',
   treatment: 'knee-replacement', diagnosis: '', urgency: 'Exploring options',
   preferredDestinations: [], budget: '', companions: 'Patient + 1 attendant',
-  visa: true, accommodation: true, airportPickup: true
+  visa: true, accommodation: true, airportPickup: true,
+  preferredHospitalIds: [], navigatorSpecialtyId: '', navigatorMatchVersion: ''
 };
 
 function prettyBytes(bytes) {
@@ -32,6 +33,7 @@ function prettyBytes(bytes) {
 
 export default function TreatmentPlanForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, patientProfile, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
@@ -56,6 +58,24 @@ export default function TreatmentPlanForm() {
       window.sessionStorage.removeItem(PENDING_CASE_KEY);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (searchParams.get('source') !== 'care-navigator') return;
+    if (window.sessionStorage.getItem(PENDING_CASE_KEY)) return;
+    const treatmentParam = searchParams.get('treatment') || '';
+    const validTreatment = treatments.some(item => item.slug === treatmentParam) ? treatmentParam : '';
+    const destinationParams = (searchParams.get('destinations') || '').split(',').map(item => item.trim()).filter(item => destinations.some(destination => destination.slug === item));
+    const hospitalId = (searchParams.get('hospital') || '').trim();
+    setForm(prev => ({
+      ...prev,
+      treatment: validTreatment || prev.treatment,
+      preferredDestinations: destinationParams.length ? destinationParams : prev.preferredDestinations,
+      preferredHospitalIds: hospitalId ? [hospitalId] : prev.preferredHospitalIds,
+      navigatorSpecialtyId: (searchParams.get('specialty') || '').trim(),
+      navigatorMatchVersion: (searchParams.get('matchVersion') || '').trim()
+    }));
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -157,7 +177,7 @@ export default function TreatmentPlanForm() {
         <span className="case-success-icon"><Check size={31}/></span>
         <span className="eyebrow">CASE SUBMITTED</span>
         <h1>Your CareAtlas case is now live.</h1>
-        <p>Your treatment request has been securely saved to Firestore and is now available in your patient portal. Medical-document upload will be connected in Phase 6C.</p>
+        <p>Your treatment request has been securely saved to Firestore and is now available in your patient portal. You can manage consent and upload medical documents securely from your case workspace.</p>
         <div className="case-reference"><small>Case reference</small><strong>{submittedCase.caseNumber}</strong></div>
         <div className="success-actions">
           <Link className="button" href="/patient">Open patient dashboard <ArrowRight size={16}/></Link>
@@ -215,6 +235,7 @@ export default function TreatmentPlanForm() {
 
         {step === 1 && (
           <div className="form-stack">
+            {form.navigatorSpecialtyId && <div className="prototype-banner phase8a-intake-context"><ShieldCheck size={17}/><div><strong>Started from CareAtlas AI Care Navigator</strong><span>Your selected specialty, destinations and preferred hospital shortlist were carried into this form. The AI match does not assign a hospital or replace clinical assessment.</span></div></div>}
             <label className="field-label"><span>Treatment required *</span><select value={form.treatment} onChange={e => update('treatment', e.target.value)}>{treatments.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></label>
             <label className="field-label"><span>Diagnosis / medical concern *</span><textarea rows="6" value={form.diagnosis} onChange={e => update('diagnosis', e.target.value)} placeholder="Briefly describe the diagnosis, symptoms, previous treatment or what your current doctor has recommended." /></label>
             <div><span className="field-heading">How soon are you considering treatment?</span><div className="choice-grid four-choice">{['Immediately', 'Within 1 month', '1–3 months', 'Exploring options'].map(item => <button type="button" onClick={() => update('urgency', item)} className={`choice-card ${form.urgency === item ? 'active' : ''}`} key={item}>{item}</button>)}</div></div>
@@ -223,11 +244,11 @@ export default function TreatmentPlanForm() {
 
         {step === 2 && (
           <div className="form-stack">
-            <div className="prototype-banner medical-banner"><ShieldCheck size={18}/><div><strong>Medical-file upload is coming in Phase 6C.</strong><span>You can select files here to preview the flow, but file contents and filenames are not saved to Firestore or uploaded anywhere.</span></div></div>
+            <div className="prototype-banner medical-banner"><ShieldCheck size={18}/><div><strong>Medical documents are added after your case is created.</strong><span>You can select files here to prepare the request, but this intake screen does not upload them. After case creation, use the secure Documents area in your patient portal.</span></div></div>
             <label className="upload-zone">
               <FileUp size={30}/>
               <strong>Select medical documents for preview</strong>
-              <span>PDF, JPG or PNG · up to 8 files · not uploaded yet</span>
+              <span>PDF, JPG or PNG · up to 8 files · upload securely after case creation</span>
               <input type="file" accept=".pdf,image/jpeg,image/png" multiple onChange={addFiles} />
             </label>
             {files.length > 0 && <div className="file-list">{files.map(file => <div className="file-row" key={file.id}><span className="file-icon"><FileText size={17}/></span><div><strong>{file.name}</strong><small>{prettyBytes(file.size)} · browser preview only</small></div><button type="button" onClick={() => removeFile(file.id)} aria-label={`Remove ${file.name}`}><Trash2 size={16}/></button></div>)}</div>}
@@ -246,9 +267,9 @@ export default function TreatmentPlanForm() {
           <div className="review-shell">
             <div className="review-card"><span className="mini-label">PATIENT</span><h3>{form.name || 'Not provided'}</h3><p>{form.country} · {user?.email || form.email}</p></div>
             <div className="review-card"><span className="mini-label">MEDICAL NEED</span><h3>{treatment?.name}</h3><p>{form.urgency}</p><blockquote>{form.diagnosis || 'No summary provided.'}</blockquote></div>
-            <div className="review-card"><span className="mini-label">RECORDS</span><h3>{files.length} file{files.length === 1 ? '' : 's'} selected for preview</h3><p>Files are not uploaded in Phase 6B. The case itself can still be submitted securely.</p></div>
+            <div className="review-card"><span className="mini-label">RECORDS</span><h3>{files.length} file{files.length === 1 ? '' : 's'} selected for preview</h3><p>These files are only a local selection preview. Upload the actual documents from the secure patient Documents area after case creation.</p></div>
             <div className="review-card"><span className="mini-label">TRAVEL</span><h3>{form.preferredDestinations.length ? form.preferredDestinations.map(slug => destinations.find(destination => destination.slug === slug)?.name).join(', ') : 'Recommend the best destination'}</h3><p>{form.budget || 'Budget not specified'} · {form.companions}</p></div>
-            <div className="consent-note"><ShieldCheck size={19}/><p>Submitting creates a real CareAtlas case linked to your Firebase account. Provider sharing, formal consent records and medical-document access will be added in later backend phases.</p></div>
+            <div className="consent-note"><ShieldCheck size={19}/><p>Submitting creates a real CareAtlas case linked to your Firebase account. Medical-document sharing with hospitals remains controlled by your recorded CareAtlas consent state and provider assignment.</p></div>
             {!user && !authLoading && <div className="prototype-banner"><ShieldCheck size={17}/><div><strong>Account required to submit</strong><span>Your form will be kept in this browser while you create an account, then restored for final submission.</span></div></div>}
             {submitError && <div className="prototype-banner"><ShieldCheck size={17}/><div><strong>Case was not created</strong><span>{submitError}</span></div></div>}
           </div>

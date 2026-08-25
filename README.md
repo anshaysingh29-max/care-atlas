@@ -76,3 +76,6 @@ Phase 7F adds verified-journey patient reviews, moderation, patient-reported out
 
 ## Phase 7G — Hospital Network & Specialty Marketplace
 Hospital self-registration now feeds an admin verification workflow. Approved specialties are normalized into a Firestore master catalogue and automatically power the public specialty marketplace, homepage discovery, patient Discover Care area, and approved hospital listings. CareAtlas commercial terms remain in a separate admin-only collection.
+
+## Phase 8A — AI Care Navigator
+CareAtlas now includes an explainable Care Navigator at `/care-navigator` and `/patient/concierge`. It ranks only live, published CareAtlas hospital partners using approved specialty capability and user-selected journey preferences. Hospital commercials and affiliate economics are excluded from ranking. Patient-saved shortlists are auditable in `/admin/ai-matching` and never auto-assign a provider.

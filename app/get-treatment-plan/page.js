@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import TreatmentPlanForm from '@/components/TreatmentPlanForm';
 
 export const metadata = {
@@ -9,7 +10,7 @@ export default function GetTreatmentPlanPage() {
   return (
     <section className="intake-page">
       <div className="container">
-        <TreatmentPlanForm />
+        <Suspense fallback={<div className="portal-card">Loading treatment request…</div>}><TreatmentPlanForm /></Suspense>
       </div>
     </section>
   );

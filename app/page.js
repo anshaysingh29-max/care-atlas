@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, FileCheck2, Globe2, HeartHandshake, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Bot, FileCheck2, Globe2, HeartHandshake, ShieldCheck, Sparkles } from 'lucide-react';
 import SearchPlanner from '@/components/SearchPlanner';
 import SectionTitle from '@/components/SectionTitle';
 import { TreatmentCard, DestinationCard, HospitalCard } from '@/components/Cards';
@@ -45,6 +45,14 @@ export default function HomePage() {
           <span>Transparent starting estimates</span>
           <span>Medical records stay private</span>
           <span>One CareAtlas journey</span>
+        </div>
+      </section>
+
+      <section className="section phase8a-home-ai">
+        <div className="container phase8a-home-ai-shell">
+          <div className="phase8a-home-ai-icon"><Bot size={32}/></div>
+          <div><span className="eyebrow"><Sparkles size={14}/> CAREATLAS AI CARE NAVIGATOR</span><h2>Not sure which hospital fits your journey?</h2><p>Use explainable matching across live CareAtlas hospital partners. Choose your specialty, destinations, language and support preferences — then see why each option matched. No hospital commercial terms influence the ranking.</p></div>
+          <Link href="/care-navigator" className="button">Try AI Care Navigator <ArrowRight size={16}/></Link>
         </div>
       </section>
 

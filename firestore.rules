@@ -179,6 +179,52 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /careNavigatorProfiles/{patientId} {
+      allow create: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.auth.uid == patientId
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && (
+        request.auth.uid == patientId ||
+        isCareAtlasStaff()
+      );
+
+      allow update: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.auth.uid == patientId
+        && resource.data.patientId == request.auth.uid
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'algorithmVersion', 'specialtyId', 'treatmentSlug', 'destinationIds',
+          'preferredLanguages', 'priorityIds', 'budgetBandId',
+          'shortlistedHospitalIds', 'matchSummaries', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    match /careMatchRuns/{matchRunId} {
+      allow create: if signedIn()
+        && currentUser().data.role == 'patient'
+        && request.resource.data.matchRunId == matchRunId
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.source == 'patient_web'
+        && request.resource.data.createdAt == request.time;
+
+      allow read: if signedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        isCareAtlasStaff()
+      );
+
+      allow update, delete: if false;
+    }
+
     match /cases/{caseId} {
       allow create: if signedIn()
         && currentUser().data.role == 'patient'
